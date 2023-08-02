@@ -1,0 +1,20 @@
+# This workflow will run tests using node and then publish a package to GitHub Packages if there are any pull request to the main branch
+
+name: Check before publish to GitHub Packages
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
