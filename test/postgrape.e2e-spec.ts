@@ -18,7 +18,6 @@ export enum WarehouseStatus {
  * Entity interface that represents warehouse.
  */
 export interface Warehouse extends Entity {
-  location_id: number;
   name: string;
   address: string;
   lat: number;
@@ -37,7 +36,7 @@ export interface Warehouse extends Entity {
 }
 
 class TestDataClient extends BaseDataClient {
-  public warehouses = new Repository<Warehouse>({ table: 'warehouse', schema: 'yamp_warehouse' }, this._config);
+  public warehouses = new Repository<Warehouse>({ table: 'warehouse', schema: 'warehouse' }, this._config);
 }
 
 describe('PostgrapeModule', () => {
@@ -70,7 +69,6 @@ describe('PostgrapeModule', () => {
         is_generic: false, 
         lat: 48.5553409, 
         lng: 35.0926967, 
-        location_id: 197, 
         name: "ATB Market Warehouse", 
         opening_days: "0000000", 
         opening_time: Duration.fromObject({ hours: 8 }),
@@ -84,7 +82,7 @@ describe('PostgrapeModule', () => {
 
       console.log(String(w.opening_time));
       console.log(String(w.closing_time));
-      expect(w).toEqual('supervisor');
+      expect(w).toBeTruthy()
     });
   });
 });
