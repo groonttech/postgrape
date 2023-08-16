@@ -1,6 +1,6 @@
-# This workflow will run tests using node and then publish a package to GitHub Packages if there are any pull request to the main branch
+# This workflow will run tests using node if there are any pull request to the main branch
 
-name: Check before publish to GitHub Packages
+name: Pull request check
 
 on:
   pull_request:

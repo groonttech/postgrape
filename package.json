@@ -1,7 +1,7 @@
 {
-  "name": "@groonttech/postgrape",
+  "name": "postgrape",
   "version": "1.3.2",
-  "description": "Postgrape allows developers to interact with a PostgreSQL database using JavaScript objects and classes, abstracting away SQL queries. It simplifies database operations by providing a higher-level API, enabling developers to work with database entities as if they were regular JavaScript objects, reducing boilerplate code and improving code maintainability.",
+  "description": "Postgrape is the ORM framework for NestJS. Postgrape allows developers to interact with a PostgreSQL database using JavaScript objects and classes, abstracting away SQL queries. It simplifies database operations by providing a higher-level API, enabling developers to work with database entities as if they were regular JavaScript objects, reducing boilerplate code and improving code maintainability.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
@@ -16,15 +16,12 @@
     "preversion": "npm run lint && npm test",
     "version": "npm run format"
   },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/@groonttech"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/groonttech/postgrape.git"
   },
-  "author": "vistoriel, strelock1010",
-  "license": "ISC",
+  "author": "vistoriel (https://github.com/vistoriel)",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/groonttech/postgrape/issues"
   },
