@@ -8,12 +8,12 @@ import { DurationWithTZ } from '../duration-with-tz';
 
 // Change parse method for timestamp to Luxon DateTime
 types.setTypeParser(types.builtins.TIMESTAMP, (value: string) => {
-  return value === null ? null : DateTime.fromISO(value, { zone: 'utc' });
+  return value === null ? null : DateTime.fromSQL(value, { zone: 'utc' });
 });
 
 // Change parse method for timestamp with timezone to Luxon DateTime
 types.setTypeParser(types.builtins.TIMESTAMPTZ, (value: string) => {
-  return value === null ? null : DateTime.fromISO(value);
+  return value === null ? null : DateTime.fromSQL(value);
 });
 
 // Change parse method for time to Luxon Duration
