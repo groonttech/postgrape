@@ -45,7 +45,7 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
   private _searchOptionsToQueryLongestCommonSubstring(query: string, columnsForSearch: string[]) {
     if (!query || !columnsForSearch) return '';
     const res = Object.values(columnsForSearch)
-      .map(entry => `(longest_common_substring(LOWER(${this._table}.${entry}::text), LOWER('${query}'))) > 1 DESC`)
+      .map(entry => `(longest_common_substring(LOWER(${this._schema}.${this._table}.${entry}::text), LOWER('${query}'))) > 1 DESC`)
       .join(', ');
     return res;
   }
@@ -53,7 +53,7 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
   private _searchOptionsToQueryDemerauLevenshteinDistance(query: string, columnsForSearch: string[]) {
     if (!query || !columnsForSearch) return '';
     const res = Object.values(columnsForSearch)
-      .map(entry => `(demerau_levenshtein_distance(LOWER(${this._table}.${entry}::text), LOWER('${query}'))) DESC`)
+      .map(entry => `(demerau_levenshtein_distance(LOWER(${this._schema}.${this._table}.${entry}::text), LOWER('${query}'))) DESC`)
       .join(', ');
     return res;
   }
@@ -71,14 +71,14 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
     const optionsQuery = this._whereOptionsToQuery(options?.where);
     const isWhere = optionsQuery !== '' ? ' AND' : 'WHERE';
 
-    const startSimilar = `SELECT * FROM ${
+    const startSimilar = `SELECT * FROM ${this._schema}.${
       this._table
     } ${optionsQuery}${isWhere} ${this._searchOptionsToQueryStartSimilar(query, columns)};`;
 
     const resStartSimilar = await this._client.query(startSimilar);
 
     searchableObjects = resStartSimilar.rows;
-    const everySimilar = `SELECT * FROM ${
+    const everySimilar = `SELECT * FROM ${this._schema}.${
       this._table
     } ${optionsQuery}${isWhere} ${this._searchOptionsToQueryEverySimilar(query, columns)} LIMIT ${
       limit - searchableObjects.length
@@ -86,7 +86,7 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
     const resEverySimilar = await this._client.query(everySimilar);
     this.addUnique(searchableObjects, resEverySimilar.rows);
     if (limit - searchableObjects.length > 0) {
-      const longestCommonSubstring = `SELECT * FROM ${
+      const longestCommonSubstring = `SELECT * FROM ${this._schema}.${
         this._table
       } ${optionsQuery} ORDER BY ${this._searchOptionsToQueryLongestCommonSubstring(query, columns)} LIMIT ${
         limit - searchableObjects.length
@@ -95,7 +95,7 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
       this.addUnique(searchableObjects, resLongestCommonSubstring.rows);
 
       if (limit - searchableObjects.length > 0) {
-        const demerauLevenshteinDistance = `SELECT * FROM ${
+        const demerauLevenshteinDistance = `SELECT * FROM ${this._schema}.${
           this._table
         } ${optionsQuery} ORDER BY ${this._searchOptionsToQueryDemerauLevenshteinDistance(query, columns)} LIMIT ${
           limit - searchableObjects.length
