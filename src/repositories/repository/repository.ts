@@ -181,11 +181,11 @@ export class Repository<TEntity extends Entity> {
   protected _valueToQuery(value: any): string {
     if (value === undefined || value === null) return 'null';
 
-    if (value.toISOString) return `'${value.toISOString()}'`;
+    if (value.toISOString) return `'${this.encodeRFC3986URI(value.toISOString())}'`;
 
-    if (typeof value === 'string') return `'${value}'`;
+    if (typeof value === 'string') return `'${this.encodeRFC3986URI(value)}'`;
 
-    return value;
+    return this.encodeRFC3986URI(value);
   }
 
   private _keyValuesArrayToQuery(key: string, array: any[]): string {
@@ -240,5 +240,9 @@ export class Repository<TEntity extends Entity> {
   protected _parseSelectOptions(select: (keyof TEntity)[]): string {
     if (!select) return '*';
     return select.join(', ');
+  }
+
+  protected encodeRFC3986URI(str: string) {
+    return encodeURI(str).replace(/['-]/g,(c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
   }
 }

@@ -250,6 +250,14 @@ describe('Repository', () => {
         );
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['test', 4]);
       });
+
+      /*test('SQL injection protection test', async () => {
+        await repository.update({ where: { bar: 4 } }, { foo: 'test-' });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          'UPDATE public."test_table" SET "foo"=$1 WHERE bar = 4 RETURNING *',
+        );
+        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['test']);
+      });*/
     });
   });
 
