@@ -26,27 +26,16 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
     }
   }
 
-  private _searchOptionsToQuery(prefix: string, sufix: string, columnsForSearch: string[]) {
-    let index = 1;
+  private _searchOptionsToQuery(prefix: string, sufix: string, columnsForSearch: string[], countSearchWords: number): string {
+    const res = columnsForSearch.map(column => {
+      const words = Array.from({ length: countSearchWords }, (_, j) => (
+        `${column} ILIKE${prefix} $${j + 1}${sufix}`
+      ));
+      return words.join(' AND ');
+    });
 
-    return Object.values(columnsForSearch).map(value => `${value} ILIKE${prefix} $${index++}${sufix}`).join(' AND ');;
+    return res.join(') OR (')
   }
-
-  /*private _searchOptionsToQueryLongestCommonSubstring(query: string, columnsForSearch: string[]) {
-    if (!query || !columnsForSearch) return '';
-    const res = Object.values(columnsForSearch)
-      .map(entry => `(longest_common_substring(LOWER(${this._schema}.${this._table}.${entry}::text), LOWER('${query}'))) > 1 DESC`)
-      .join(', ');
-    return res;
-  }
-
-  private _searchOptionsToQueryDemerauLevenshteinDistance(query: string, columnsForSearch: string[]) {
-    if (!query || !columnsForSearch) return '';
-    const res = Object.values(columnsForSearch)
-      .map(entry => `(demerau_levenshtein_distance(LOWER(${this._schema}.${this._table}.${entry}::text), LOWER('${query}'))) DESC`)
-      .join(', ');
-    return res;
-  }*/
 
   public async search(
     query: string,
@@ -56,61 +45,35 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
     if (query === '') throw new InvalidArgumentsException();
     const columns = (columnsForSearch as string[]) || this._columnsForSearch;
     const limit = !options || !options.limit ? 10 : options.limit;
-    let arrayOfQuery: string[] = [];
+    let arrayOfWordsInQuery: string[] = query.split(/[\s,]+/); // divide query into words
+    let arrayOfQuery: string[][] = [];
 
-    for (let i = 0; i < columnsForSearch.length; i++) {
-      arrayOfQuery.push(query);
+    for (let j = 0; j < columnsForSearch.length; j++) {
+      arrayOfQuery.push(arrayOfWordsInQuery);
     }
 
     let searchableObjects: TEntity[];
     const optionsQuery = this._whereOptionsToQuery(options?.where);
     const isWhere = optionsQuery !== '' ? ' AND' : 'WHERE';
 
-    const startSimilar = `SELECT * FROM ${this._schema}.${
-      this._table
-    } ${optionsQuery}${isWhere} ${this._searchOptionsToQuery("", " || '%' ", columns)};`;
-
-    const resStartSimilar = await this._client.query(startSimilar, arrayOfQuery);
-
-    searchableObjects = resStartSimilar.rows;
-
-    const endSimilar = `SELECT * FROM ${this._schema}.${
-      this._table
-    } ${optionsQuery}${isWhere} ${this._searchOptionsToQuery(" '%' || ", "", columns)} LIMIT ${
-      limit - (searchableObjects == undefined ? 0 : searchableObjects.length)
-    };`;
-
-    const resEndSimilar = await this._client.query(endSimilar, arrayOfQuery);
-
-    this.addUnique(searchableObjects, resEndSimilar.rows);
-    
-    const everySimilar = `SELECT * FROM ${this._schema}.${
-      this._table
-    } ${optionsQuery}${isWhere} ${this._searchOptionsToQuery(" '%' || ", " || '%' ", columns)} LIMIT ${
-      limit - (searchableObjects == undefined ? 0 : searchableObjects.length)
-    };`;
-    const resEverySimilar = await this._client.query(everySimilar, arrayOfQuery);
-    this.addUnique(searchableObjects, resEverySimilar.rows);
-    /*if (limit - searchableObjects.length > 0) {
-      const longestCommonSubstring = `SELECT * FROM ${this._schema}.${
+    for (let i = 0; i < arrayOfQuery.length; i++) {
+      const startSimilar = `SELECT * FROM ${this._schema}.${
         this._table
-      } ${optionsQuery} ORDER BY ${this._searchOptionsToQueryLongestCommonSubstring(query, columns)} LIMIT ${
-        limit - searchableObjects.length
+      } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery("", " || '%'", columns, arrayOfWordsInQuery.length)});`;
+
+      const resStartSimilar = await this._client.query(startSimilar, arrayOfQuery[i]);
+
+      searchableObjects = resStartSimilar.rows;
+      
+      const everySimilar = `SELECT * FROM ${this._schema}.${
+        this._table
+      } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery(" '%' || ", " || '%'", columns, arrayOfWordsInQuery.length)}) LIMIT ${
+        limit - (searchableObjects == undefined ? 0 : searchableObjects.length)
       };`;
-      const resLongestCommonSubstring = await this._client.query(longestCommonSubstring);
-      this.addUnique(searchableObjects, resLongestCommonSubstring.rows);
+      const resEverySimilar = await this._client.query(everySimilar, arrayOfQuery[i]);
+      this.addUnique(searchableObjects, resEverySimilar.rows);
+    }
 
-      if (limit - searchableObjects.length > 0) {
-        const demerauLevenshteinDistance = `SELECT * FROM ${this._schema}.${
-          this._table
-        } ${optionsQuery} ORDER BY ${this._searchOptionsToQueryDemerauLevenshteinDistance(query, columns)} LIMIT ${
-          limit - searchableObjects.length
-        };`;
-        const resDemerauLevenshteinDistance = await this._client.query(demerauLevenshteinDistance);
-        this.addUnique(searchableObjects, resDemerauLevenshteinDistance.rows);
-      }
-    }*/
-
-    return searchableObjects;
+    return searchableObjects
   }
 }
