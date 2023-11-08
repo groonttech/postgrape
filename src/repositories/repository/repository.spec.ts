@@ -39,8 +39,22 @@ describe('Repository', () => {
         expect(mockQueryMethod.mock.calls[0][0]).toEqual('SELECT * FROM public."test_table" ORDER BY "id" ASC');
       });
 
+      test('when there are undefined WHERE options', async () => {
+        await repository.find({ where: { bar: undefined} });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          'SELECT * FROM public."test_table" ORDER BY "id" ASC',
+        );
+      });
+
+      test('when there is one undefined WHERE options', async () => {
+        await repository.find({ where: { bar: undefined, foo: 'foo_name' } });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          'SELECT * FROM public."test_table" WHERE (foo = \'foo_name\') ORDER BY "id" ASC',
+        );
+      });
+
       test('when there are simple WHERE options', async () => {
-        await repository.find({ where: { bar: 6 } });
+        await repository.find({ where: { bar: 6} });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           'SELECT * FROM public."test_table" WHERE bar = 6 ORDER BY "id" ASC',
         );
@@ -250,14 +264,6 @@ describe('Repository', () => {
         );
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['test', 4]);
       });
-
-      /*test('SQL injection protection test', async () => {
-        await repository.update({ where: { bar: 4 } }, { foo: 'test-' });
-        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-          'UPDATE public."test_table" SET "foo"=$1 WHERE bar = 4 RETURNING *',
-        );
-        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['test']);
-      });*/
     });
   });
 

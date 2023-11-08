@@ -156,6 +156,7 @@ export class Repository<TEntity extends Entity> {
   protected _whereOptionsToQuery(whereOptions?: WhereOptions<TEntity>): string {
     if (!whereOptions) return '';
     const query = this._parseWhereObject(whereOptions);
+    if (query == '') return '';
     return `WHERE ${query}`;
   }
 
@@ -164,6 +165,7 @@ export class Repository<TEntity extends Entity> {
     const query = Object.entries(orderByOptions)
       .map(entry => `"${entry[0]}" ${entry[1]}`)
       .join(', ');
+    if (query == '') return '';
     return `ORDER BY ${query}`;
   }
 
@@ -179,7 +181,8 @@ export class Repository<TEntity extends Entity> {
   }
 
   protected _valueToQuery(value: any): string {
-    if (value === undefined || value === null) return 'null';
+    if (value == undefined) return '';
+    if (value === null) return 'null';
 
     if (value.toISOString) return `'${this.encodeRFC3986URI(value.toISOString())}'`;
 
@@ -189,34 +192,47 @@ export class Repository<TEntity extends Entity> {
   }
 
   private _keyValuesArrayToQuery(key: string, array: any[]): string {
-    return `(${array.map(v => `${key} = ${this._valueToQuery(v)}`).join(' OR ')})`;
+    if (array != undefined) { return `(${array.map(v => {
+      if (this._valueToQuery(v) != '')  {
+        return `${key} = ${this._valueToQuery(v)}`
+      }
+    }).join(' OR ')})`};
   }
 
   private _keyOperatorValueToQuery(key: string, object: Record<symbol, any>): string {
     const operator = Object.getOwnPropertySymbols(object)[0];
-    return `${key} ${operator.description} ${this._valueToQuery(object[operator])}`;
+
+    if (this._valueToQuery(object[operator]) != '') {
+      return `${key} ${operator.description} ${this._valueToQuery(object[operator])}`
+    }
+
+    return;
   }
 
   private _keyValueToQuery(key: string, value: any): string {
-    return `${key} = ${this._valueToQuery(value)}`;
+    if (this._valueToQuery(value) != '')  {
+      return `${key} = ${this._valueToQuery(value)}`
+    }
+
+    return;
   }
 
   private _parseWhereObject(object: Record<string | symbol, any>): string {
-    let query = '';
+    let array = [];
     const keys = Object.keys(object);
     const operators = Object.getOwnPropertySymbols(object);
 
-    query += keys
-      .map(key => {
-        if (Array.isArray(object[key])) {
-          return this._keyValuesArrayToQuery(key, object[key]);
-        } else if (this._containOperator(object[key])) {
-          return this._keyOperatorValueToQuery(key, object[key]);
-        } else {
-          return this._keyValueToQuery(key, object[key]);
-        }
-      })
-      .join(' AND ');
+    for (const key of keys) {
+      if (Array.isArray(object[key])) {
+        if (this._keyValuesArrayToQuery(key, object[key]) != undefined) array.push(this._keyValuesArrayToQuery(key, object[key]));
+      } else if (this._containOperator(object[key])) {
+        if (this._keyOperatorValueToQuery(key, object[key]) != undefined) array.push(this._keyOperatorValueToQuery(key, object[key]));
+      } else {
+        if (this._keyValueToQuery(key, object[key]) != undefined) array.push(this._keyValueToQuery(key, object[key]));
+      }
+    }
+
+    let query = array.join(' AND ');
 
     if (operators.length && keys.length) query += ' AND ';
 
