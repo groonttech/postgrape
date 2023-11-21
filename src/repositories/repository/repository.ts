@@ -181,8 +181,8 @@ export class Repository<TEntity extends Entity> {
   }
 
   protected _valueToQuery(value: any): string {
-    if (value == undefined) return '';
     if (value === null) return 'null';
+    if (value == undefined) return '';
 
     if (value.toISOString) return `'${this.encodeRFC3986URI(value.toISOString())}'`;
 
@@ -193,9 +193,8 @@ export class Repository<TEntity extends Entity> {
 
   private _keyValuesArrayToQuery(key: string, array: any[]): string {
     if (array != undefined) { return `(${array.map(v => {
-      if (this._valueToQuery(v) != '')  {
-        return `${key} = ${this._valueToQuery(v)}`
-      }
+      if (this._valueToQuery(v) == 'null') return `${key} IS ${this._valueToQuery(v)}`
+      if (this._valueToQuery(v) != '') return `${key} = ${this._valueToQuery(v)}`
     }).join(' OR ')})`};
   }
 
@@ -210,7 +209,8 @@ export class Repository<TEntity extends Entity> {
   }
 
   private _keyValueToQuery(key: string, value: any): string {
-    if (this._valueToQuery(value) != '')  {
+    if (this._valueToQuery(value) != '') {
+      if (this._valueToQuery(value) == 'null') return `${key} IS ${this._valueToQuery(value)}`
       return `${key} = ${this._valueToQuery(value)}`
     }
 

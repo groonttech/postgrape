@@ -53,6 +53,13 @@ describe('Repository', () => {
         );
       });
 
+      test('when there is one null WHERE options', async () => {
+        await repository.find({ where: { bar: null, foo: 'foo_name' } });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          'SELECT * FROM public."test_table" WHERE (bar IS null AND foo = \'foo_name\') ORDER BY "id" ASC',
+        );
+      });
+
       test('when there are simple WHERE options', async () => {
         await repository.find({ where: { bar: 6} });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
