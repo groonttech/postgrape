@@ -169,7 +169,7 @@ export class Repository<TEntity extends Entity> {
     return `ORDER BY ${query}`;
   }
 
-  protected _optionsToQuery(options: QueryOptions<TEntity>, withOrder = true, withReturning = false): string {
+  protected _optionsToQuery(options?: QueryOptions<TEntity>, withOrder = true, withReturning = false): string {
     const optionsObj = [
       options?.where ? this._whereOptionsToQuery(options?.where) + ' ' : '',
       withOrder ? this._orderByOptionsToQuery(options?.orderBy) + ' ' : '',
@@ -197,6 +197,7 @@ export class Repository<TEntity extends Entity> {
         return `${key} = ${this._valueToQuery(v)}`
       }
     }).join(' OR ')})`};
+    return "";
   }
 
   private _keyOperatorValueToQuery(key: string, object: Record<symbol, any>): string {
@@ -206,7 +207,7 @@ export class Repository<TEntity extends Entity> {
       return `${key} ${operator.description} ${this._valueToQuery(object[operator])}`
     }
 
-    return;
+    return "";
   }
 
   private _keyValueToQuery(key: string, value: any): string {
@@ -214,11 +215,11 @@ export class Repository<TEntity extends Entity> {
       return `${key} = ${this._valueToQuery(value)}`
     }
 
-    return;
+    return "";
   }
 
   private _parseWhereObject(object: Record<string | symbol, any>): string {
-    let array = [];
+    let array: string[] = [];
     const keys = Object.keys(object);
     const operators = Object.getOwnPropertySymbols(object);
 
@@ -253,7 +254,7 @@ export class Repository<TEntity extends Entity> {
     return `(${query})`;
   }
 
-  protected _parseSelectOptions(select: (keyof TEntity)[]): string {
+  protected _parseSelectOptions(select?: (keyof TEntity)[]): string {
     if (!select) return '*';
     return select.join(', ');
   }

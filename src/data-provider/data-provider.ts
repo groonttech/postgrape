@@ -45,7 +45,7 @@ export class DataProvider {
       password: options.password,
     });
     this._dataClientClass = options.dataClient;
-    this._defaultSchema = options.defaultSchema;
+    this._defaultSchema = options.defaultSchema || 'public';
 
     // Trying to connect to the database
     this._pool.query('SELECT NOW()', (err, res) => {

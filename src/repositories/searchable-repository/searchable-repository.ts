@@ -48,11 +48,11 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
     let arrayOfWordsInQuery: string[] = query.split(/[\s,]+/); // divide query into words
     let arrayOfQuery: string[][] = [];
 
-    for (let j = 0; j < columnsForSearch.length; j++) {
+    for (let j = 0; j < columns.length; j++) {
       arrayOfQuery.push(arrayOfWordsInQuery);
     }
 
-    let searchableObjects: TEntity[];
+    let searchableObjects: TEntity[] = [];
     const optionsQuery = this._whereOptionsToQuery(options?.where);
     const isWhere = optionsQuery !== '' ? ' AND' : 'WHERE';
 
@@ -74,6 +74,6 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
       this.addUnique(searchableObjects, resEverySimilar.rows);
     }
 
-    return searchableObjects
+    return searchableObjects;
   }
 }

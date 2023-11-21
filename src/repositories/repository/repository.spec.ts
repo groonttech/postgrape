@@ -34,29 +34,43 @@ describe('Repository', () => {
     });
 
     describe('should generate valid query', () => {
-      test('when options is empty', async () => {
+      test('when options are empty', async () => {
         await repository.find({});
         expect(mockQueryMethod.mock.calls[0][0]).toEqual('SELECT * FROM public."test_table" ORDER BY "id" ASC');
       });
 
-      test('when there are undefined WHERE options', async () => {
-        await repository.find({ where: { bar: undefined} });
+      test('when WHERE options are empty', async () => {
+        await repository.find({ where: {} });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           'SELECT * FROM public."test_table" ORDER BY "id" ASC',
         );
       });
 
-      test('when there is one undefined WHERE options', async () => {
-        await repository.find({ where: { bar: undefined, foo: 'foo_name' } });
+      test('when there is only one undefined param in WHERE options', async () => {
+        await repository.find({ where: { bar: undefined } });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          'SELECT * FROM public."test_table" ORDER BY "id" ASC',
+        );
+      });
+
+      test('when there is one undefined and one defined param in WHERE options', async () => {
+        await repository.find({ where: { bar: null, foo: 'foo_name' } });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           'SELECT * FROM public."test_table" WHERE (foo = \'foo_name\') ORDER BY "id" ASC',
         );
       });
 
       test('when there are simple WHERE options', async () => {
-        await repository.find({ where: { bar: 6} });
+        await repository.find({ where: { bar: 6 } });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           'SELECT * FROM public."test_table" WHERE bar = 6 ORDER BY "id" ASC',
+        );
+      });
+
+      test('when there is null param in WHERE options', async () => {
+        await repository.find({ where: { bar: 6, foo: null } });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          'SELECT * FROM public."test_table" WHERE (bar = 6 AND foo IS null) ORDER BY "id" ASC',
         );
       });
 
