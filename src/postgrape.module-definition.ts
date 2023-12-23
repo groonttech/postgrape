@@ -1,5 +1,5 @@
 import { ConfigurableModuleBuilder } from '@nestjs/common';
-import { BaseDataClient } from './data-client';
+import { PostgrapeClient } from './client';
 
 /**
  * Postgrape module uses this options to connect to the PostgreSQL database.
@@ -10,7 +10,7 @@ export interface PostgrapeModuleOptions {
   database?: string;
   password?: string;
   port?: number;
-  dataClient: typeof BaseDataClient;
+  dataClient: typeof PostgrapeClient;
   defaultSchema?: string;
 }
 

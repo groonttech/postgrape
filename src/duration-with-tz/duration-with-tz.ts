@@ -26,7 +26,7 @@ export class DurationWithTZ {
     return `${this.duration.toISOTime()}${this.isNegative ? '-' : '+'}${offset.toFormat('hh:mm')}`;
   }
 
-  public [util.inspect.custom](depth, opts): string {
+  public [util.inspect.custom](depth: any, opts: any): string {
     return this.toString();
   }
 

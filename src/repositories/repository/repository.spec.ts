@@ -41,16 +41,12 @@ describe('Repository', () => {
 
       test('when WHERE options are empty', async () => {
         await repository.find({ where: {} });
-        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-          'SELECT * FROM public."test_table" ORDER BY "id" ASC',
-        );
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual('SELECT * FROM public."test_table" ORDER BY "id" ASC');
       });
 
       test('when there is only one undefined param in WHERE options', async () => {
         await repository.find({ where: { bar: undefined } });
-        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-          'SELECT * FROM public."test_table" ORDER BY "id" ASC',
-        );
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual('SELECT * FROM public."test_table" ORDER BY "id" ASC');
       });
 
       test('when there is one undefined and one defined param in WHERE options', async () => {

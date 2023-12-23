@@ -31,7 +31,6 @@ describe('SearchableRepository', () => {
 
   describe('createMultiple() method', () => {
     describe('should generate valid query', () => {
-
       test('when check with one search column', async () => {
         await repository.search('foo_name', ['foo']);
         expect(mockQueryMethod.mock.calls[0][0]).toEqual("SELECT * FROM public.test WHERE (foo ILIKE $1 || '%');");
@@ -82,7 +81,9 @@ describe('SearchableRepository', () => {
 
       test('when there are search string with several words', async () => {
         await repository.search('foo name', ['foo'], { limit: 8 });
-        expect(mockQueryMethod.mock.calls[0][0]).toEqual("SELECT * FROM public.test WHERE (foo ILIKE $1 || '%' AND foo ILIKE $2 || '%');");
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          "SELECT * FROM public.test WHERE (foo ILIKE $1 || '%' AND foo ILIKE $2 || '%');",
+        );
         expect(mockQueryMethod.mock.calls[1][0]).toEqual(
           "SELECT * FROM public.test WHERE (foo ILIKE '%' ||  $1 || '%' AND foo ILIKE '%' ||  $2 || '%') LIMIT 6;",
         );

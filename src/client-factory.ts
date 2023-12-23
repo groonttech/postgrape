@@ -1,10 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { exit } from 'process';
 import { Pool, types } from 'pg';
-import { PostgrapeModuleOptions, MODULE_OPTIONS_TOKEN } from '../postgrape.module-definition';
-import { BaseDataClient } from '../data-client';
+import { PostgrapeModuleOptions, MODULE_OPTIONS_TOKEN } from './postgrape.module-definition';
 import { DateTime, Duration } from 'luxon';
-import { DurationWithTZ } from '../duration-with-tz';
+import { DurationWithTZ } from './duration-with-tz';
+import { PostgrapeClient } from './client';
 
 // Change parse method for timestamp to Luxon DateTime
 types.setTypeParser(types.builtins.TIMESTAMP, (value: string) => {
@@ -27,14 +27,14 @@ types.setTypeParser(types.builtins.TIMETZ, (value: string) => {
 });
 
 /**
- * Data provider.
+ * The `PostgrapeClientFactory` class is responsible for managing database connections and acquiring `PostgrapeClient` instances.
  */
 @Injectable()
-export class DataProvider {
+export class PostgrapeClientFactory {
   private _defaultSchema: string;
   private _pool: Pool;
-  private _dataClientClass: typeof BaseDataClient;
-  private _logger = new Logger(DataProvider.name);
+  private _dataClientClass: typeof PostgrapeClient;
+  private _logger = new Logger(PostgrapeClientFactory.name);
 
   constructor(@Inject(MODULE_OPTIONS_TOKEN) options: PostgrapeModuleOptions) {
     this._pool = new Pool({
@@ -58,19 +58,17 @@ export class DataProvider {
   }
 
   /**
-   * Acquires a client from the pool and start transaction or return provided client and create savepoint.
-   * @param client data client of root service
+   * Acquire a client from the pool.
    */
-  public async getClientAndBegin<TDataClient extends BaseDataClient>(client?: TDataClient): Promise<TDataClient> {
-    if (!client) {
-      const dbClient = await this._pool.connect();
-      if (!dbClient) throw Error('Client has not been acquired');
-      client = new this._dataClientClass(dbClient, this._defaultSchema) as TDataClient;
-    }
-    await client.begin();
-    return client;
+  public async acquireClient<TClient extends PostgrapeClient>(): Promise<TClient> {
+    const dbClient = await this._pool.connect();
+    if (!dbClient) throw Error('Client has not been acquired');
+    return new this._dataClientClass(dbClient, this._defaultSchema) as TClient;
   }
 
+  /**
+   * Close all connections.
+   */
   public async end(): Promise<void> {
     return this._pool.end();
   }

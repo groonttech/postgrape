@@ -26,15 +26,18 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
     }
   }
 
-  private _searchOptionsToQuery(prefix: string, sufix: string, columnsForSearch: string[], countSearchWords: number): string {
+  private _searchOptionsToQuery(
+    prefix: string,
+    sufix: string,
+    columnsForSearch: string[],
+    countSearchWords: number,
+  ): string {
     const res = columnsForSearch.map(column => {
-      const words = Array.from({ length: countSearchWords }, (_, j) => (
-        `${column} ILIKE${prefix} $${j + 1}${sufix}`
-      ));
+      const words = Array.from({ length: countSearchWords }, (_, j) => `${column} ILIKE${prefix} $${j + 1}${sufix}`);
       return words.join(' AND ');
     });
 
-    return res.join(') OR (')
+    return res.join(') OR (');
   }
 
   public async search(
@@ -59,17 +62,20 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
     for (let i = 0; i < arrayOfQuery.length; i++) {
       const startSimilar = `SELECT * FROM ${this._schema}.${
         this._table
-      } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery("", " || '%'", columns, arrayOfWordsInQuery.length)});`;
+      } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery('', " || '%'", columns, arrayOfWordsInQuery.length)});`;
 
       const resStartSimilar = await this._client.query(startSimilar, arrayOfQuery[i]);
 
       searchableObjects = resStartSimilar.rows;
-      
+
       const everySimilar = `SELECT * FROM ${this._schema}.${
         this._table
-      } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery(" '%' || ", " || '%'", columns, arrayOfWordsInQuery.length)}) LIMIT ${
-        limit - (searchableObjects == undefined ? 0 : searchableObjects.length)
-      };`;
+      } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery(
+        " '%' || ",
+        " || '%'",
+        columns,
+        arrayOfWordsInQuery.length,
+      )}) LIMIT ${limit - (searchableObjects == undefined ? 0 : searchableObjects.length)};`;
       const resEverySimilar = await this._client.query(everySimilar, arrayOfQuery[i]);
       this.addUnique(searchableObjects, resEverySimilar.rows);
     }

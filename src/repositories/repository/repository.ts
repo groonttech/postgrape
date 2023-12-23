@@ -192,30 +192,34 @@ export class Repository<TEntity extends Entity> {
   }
 
   private _keyValuesArrayToQuery(key: string, array: any[]): string {
-    if (array != undefined) { return `(${array.map(v => {
-      if (this._valueToQuery(v) != '')  {
-        return `${key} = ${this._valueToQuery(v)}`
-      }
-    }).join(' OR ')})`};
-    return "";
+    if (array != undefined) {
+      return `(${array
+        .map(v => {
+          if (this._valueToQuery(v) != '') {
+            return `${key} = ${this._valueToQuery(v)}`;
+          }
+        })
+        .join(' OR ')})`;
+    }
+    return '';
   }
 
   private _keyOperatorValueToQuery(key: string, object: Record<symbol, any>): string {
     const operator = Object.getOwnPropertySymbols(object)[0];
 
     if (this._valueToQuery(object[operator]) != '') {
-      return `${key} ${operator.description} ${this._valueToQuery(object[operator])}`
+      return `${key} ${operator.description} ${this._valueToQuery(object[operator])}`;
     }
 
-    return "";
+    return '';
   }
 
   private _keyValueToQuery(key: string, value: any): string {
-    if (this._valueToQuery(value) != '')  {
-      return `${key} = ${this._valueToQuery(value)}`
+    if (this._valueToQuery(value) != '') {
+      return `${key} = ${this._valueToQuery(value)}`;
     }
 
-    return "";
+    return '';
   }
 
   private _parseWhereObject(object: Record<string | symbol, any>): string {
@@ -225,9 +229,11 @@ export class Repository<TEntity extends Entity> {
 
     for (const key of keys) {
       if (Array.isArray(object[key])) {
-        if (this._keyValuesArrayToQuery(key, object[key]) != undefined) array.push(this._keyValuesArrayToQuery(key, object[key]));
+        if (this._keyValuesArrayToQuery(key, object[key]) != undefined)
+          array.push(this._keyValuesArrayToQuery(key, object[key]));
       } else if (this._containOperator(object[key])) {
-        if (this._keyOperatorValueToQuery(key, object[key]) != undefined) array.push(this._keyOperatorValueToQuery(key, object[key]));
+        if (this._keyOperatorValueToQuery(key, object[key]) != undefined)
+          array.push(this._keyOperatorValueToQuery(key, object[key]));
       } else {
         if (this._keyValueToQuery(key, object[key]) != undefined) array.push(this._keyValueToQuery(key, object[key]));
       }
@@ -260,6 +266,6 @@ export class Repository<TEntity extends Entity> {
   }
 
   protected encodeRFC3986URI(str: string) {
-    return encodeURI(str).replace(/['-]/g,(c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+    return encodeURI(str).replace(/['-]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
   }
 }

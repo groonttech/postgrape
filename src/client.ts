@@ -1,15 +1,23 @@
 import { PoolClient } from 'pg';
-import { RepositoryConfig } from '../repositories';
+import { RepositoryConfig } from './repositories';
 
 /**
- * Data client provide a common interface for accessing data in a database.
+ * The `PostgrapeClient` class is a wrapper around a PostgreSQL client connection from a pool.
+ * It provides transaction management features, including the ability to start, commit, and rollback transactions.
+ *
+ * This class should be extended and repository fields should be added to access specific tables in the database:
+ * ```
+ * export class DataClient extends PostgrapeClient {
+ *   public readonly users = new Repository<User>('user', this._config);
+ * }
+ * ```
  */
-export class BaseDataClient {
+export class PostgrapeClient {
   private _isTransactionStarted = false;
   private _savepoints: string[] = [];
   protected _config: RepositoryConfig;
 
-  constructor(private _client: PoolClient, private _defaultSchema: string) {
+  constructor(private _client: PoolClient, _defaultSchema: string) {
     this._config = {
       client: _client,
       defaultSchema: _defaultSchema,
@@ -17,7 +25,7 @@ export class BaseDataClient {
   }
 
   /**
-   * Begin transaction for an acquired client or create savepoint if transaction already started.
+   * Begin transaction for an acquired client or set a savepoint if transaction already started.
    */
   public async begin(): Promise<void> {
     if (!this._isTransactionStarted) {
@@ -33,7 +41,7 @@ export class BaseDataClient {
   }
 
   /**
-   * Commit transaction for an acquired client if it is no one savepoints left.
+   * Commit transaction for an acquired client if there are no savepoints.
    */
   public async commit(): Promise<void> {
     if (this._isTransactionStarted && !this._savepoints.length) {

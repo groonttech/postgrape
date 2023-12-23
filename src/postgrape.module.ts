@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { DataProvider } from './data-provider';
 import { ConfigurableModuleClass } from './postgrape.module-definition';
+import { PostgrapeClientFactory } from './client-factory';
 
 @Module({
-  providers: [DataProvider],
-  exports: [DataProvider],
+  providers: [PostgrapeClientFactory],
+  exports: [PostgrapeClientFactory],
 })
 export class PostgrapeModule extends ConfigurableModuleClass {}
