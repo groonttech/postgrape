@@ -18,7 +18,7 @@ import { InvalidArgumentsException } from '../../exceptions';
 import { Duration } from 'luxon';
 
 /**
- * This class provides a standard set of methods for performing CRUD operations on entities in a data store.
+ * This `Repository` class provides a standard set of methods for performing CRUD operations on entities in a database.
  */
 export class Repository<TEntity extends Entity> {
   protected _table: string;
@@ -79,7 +79,7 @@ export class Repository<TEntity extends Entity> {
    * Create a new entity with the given data and return it.
    * @param entity entity object
    */
-  public async create(entity: TEntity, options?: CreateOptions<TEntity>): Promise<TEntity> {
+  public async create(entity: Omit<TEntity, 'id'>, options?: CreateOptions<TEntity>): Promise<TEntity> {
     if (!entity) throw new InvalidArgumentsException();
     const keys = Object.keys(entity)
       .map(key => `"${key}"`)
