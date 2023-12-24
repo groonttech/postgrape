@@ -40,10 +40,8 @@ describe('Repository', () => {
       });
 
       test('when there are undefined WHERE options', async () => {
-        await repository.find({ where: { bar: undefined} });
-        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-          'SELECT * FROM public."test_table" ORDER BY "id" ASC',
-        );
+        await repository.find({ where: { bar: undefined } });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual('SELECT * FROM public."test_table" ORDER BY "id" ASC');
       });
 
       test('when there is one undefined WHERE options', async () => {
@@ -61,7 +59,7 @@ describe('Repository', () => {
       });
 
       test('when there are simple WHERE options', async () => {
-        await repository.find({ where: { bar: 6} });
+        await repository.find({ where: { bar: 6 } });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           'SELECT * FROM public."test_table" WHERE bar = 6 ORDER BY "id" ASC',
         );

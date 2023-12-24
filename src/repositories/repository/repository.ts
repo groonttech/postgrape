@@ -156,7 +156,7 @@ export class Repository<TEntity extends Entity> {
   protected _whereOptionsToQuery(whereOptions?: WhereOptions<TEntity>): string {
     if (!whereOptions) return '';
     const query = this._parseWhereObject(whereOptions);
-    if (query == '') return '';
+    if (query === '') return '';
     return `WHERE ${query}`;
   }
 
@@ -165,7 +165,7 @@ export class Repository<TEntity extends Entity> {
     const query = Object.entries(orderByOptions)
       .map(entry => `"${entry[0]}" ${entry[1]}`)
       .join(', ');
-    if (query == '') return '';
+    if (query === '') return '';
     return `ORDER BY ${query}`;
   }
 
@@ -182,7 +182,7 @@ export class Repository<TEntity extends Entity> {
 
   protected _valueToQuery(value: any): string {
     if (value === null) return 'null';
-    if (value == undefined) return '';
+    if (value === undefined) return '';
 
     if (value.toISOString) return `'${this.encodeRFC3986URI(value.toISOString())}'`;
 
@@ -192,43 +192,49 @@ export class Repository<TEntity extends Entity> {
   }
 
   private _keyValuesArrayToQuery(key: string, array: any[]): string {
-    if (array != undefined) { return `(${array.map(v => {
-      if (this._valueToQuery(v) == 'null') return `${key} IS ${this._valueToQuery(v)}`
-      if (this._valueToQuery(v) != '') return `${key} = ${this._valueToQuery(v)}`
-    }).join(' OR ')})`};
+    if (array !== undefined) {
+      return `(${array
+        .map(v => {
+          if (this._valueToQuery(v) === 'null') return `${key} IS ${this._valueToQuery(v)}`;
+          if (this._valueToQuery(v) !== '') return `${key} = ${this._valueToQuery(v)}`;
+        })
+        .join(' OR ')})`;
+    }
   }
 
   private _keyOperatorValueToQuery(key: string, object: Record<symbol, any>): string {
     const operator = Object.getOwnPropertySymbols(object)[0];
 
-    if (this._valueToQuery(object[operator]) != '') {
-      return `${key} ${operator.description} ${this._valueToQuery(object[operator])}`
+    if (this._valueToQuery(object[operator]) !== '') {
+      return `${key} ${operator.description} ${this._valueToQuery(object[operator])}`;
     }
 
     return;
   }
 
   private _keyValueToQuery(key: string, value: any): string {
-    if (this._valueToQuery(value) != '') {
-      if (this._valueToQuery(value) == 'null') return `${key} IS ${this._valueToQuery(value)}`
-      return `${key} = ${this._valueToQuery(value)}`
+    if (this._valueToQuery(value) !== '') {
+      if (this._valueToQuery(value) === 'null') return `${key} IS ${this._valueToQuery(value)}`;
+      return `${key} = ${this._valueToQuery(value)}`;
     }
 
     return;
   }
 
   private _parseWhereObject(object: Record<string | symbol, any>): string {
-    let array = [];
+    const array = [];
     const keys = Object.keys(object);
     const operators = Object.getOwnPropertySymbols(object);
 
     for (const key of keys) {
       if (Array.isArray(object[key])) {
-        if (this._keyValuesArrayToQuery(key, object[key]) != undefined) array.push(this._keyValuesArrayToQuery(key, object[key]));
+        if (this._keyValuesArrayToQuery(key, object[key]) !== undefined)
+          array.push(this._keyValuesArrayToQuery(key, object[key]));
       } else if (this._containOperator(object[key])) {
-        if (this._keyOperatorValueToQuery(key, object[key]) != undefined) array.push(this._keyOperatorValueToQuery(key, object[key]));
+        if (this._keyOperatorValueToQuery(key, object[key]) !== undefined)
+          array.push(this._keyOperatorValueToQuery(key, object[key]));
       } else {
-        if (this._keyValueToQuery(key, object[key]) != undefined) array.push(this._keyValueToQuery(key, object[key]));
+        if (this._keyValueToQuery(key, object[key]) !== undefined) array.push(this._keyValueToQuery(key, object[key]));
       }
     }
 
@@ -259,6 +265,6 @@ export class Repository<TEntity extends Entity> {
   }
 
   protected encodeRFC3986URI(str: string) {
-    return encodeURI(str).replace(/['-]/g,(c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+    return encodeURI(str).replace(/['-]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
   }
 }

@@ -26,15 +26,18 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
     }
   }
 
-  private _searchOptionsToQuery(prefix: string, sufix: string, columnsForSearch: string[], countSearchWords: number): string {
+  private _searchOptionsToQuery(
+    prefix: string,
+    sufix: string,
+    columnsForSearch: string[],
+    countSearchWords: number,
+  ): string {
     const res = columnsForSearch.map(column => {
-      const words = Array.from({ length: countSearchWords }, (_, j) => (
-        `${column} ILIKE${prefix} $${j + 1}${sufix}`
-      ));
+      const words = Array.from({ length: countSearchWords }, (_, j) => `${column} ILIKE${prefix} $${j + 1}${sufix}`);
       return words.join(' AND ');
     });
 
-    return res.join(') OR (')
+    return res.join(') OR (');
   }
 
   public async search(
@@ -45,35 +48,34 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
     if (query === '') throw new InvalidArgumentsException();
     const columns = (columnsForSearch as string[]) || this._columnsForSearch;
     const limit = !options || !options.limit ? 10 : options.limit;
-    let arrayOfWordsInQuery: string[] = query.split(/[\s,]+/); // divide query into words
-    let arrayOfQuery: string[][] = [];
-
-    for (let j = 0; j < columnsForSearch.length; j++) {
-      arrayOfQuery.push(arrayOfWordsInQuery);
-    }
+    const arrayOfWordsInQuery: string[] = query.split(/[\s,]+/); // divide query into words
+    const arrayOfQuery: string[][] = new Array(columnsForSearch.length).fill(arrayOfWordsInQuery);
 
     let searchableObjects: TEntity[];
     const optionsQuery = this._whereOptionsToQuery(options?.where);
     const isWhere = optionsQuery !== '' ? ' AND' : 'WHERE';
 
-    for (let i = 0; i < arrayOfQuery.length; i++) {
+    for (const currentQuery of arrayOfQuery) {
       const startSimilar = `SELECT * FROM ${this._schema}.${
         this._table
-      } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery("", " || '%'", columns, arrayOfWordsInQuery.length)});`;
+      } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery('', " || '%'", columns, arrayOfWordsInQuery.length)});`;
 
-      const resStartSimilar = await this._client.query(startSimilar, arrayOfQuery[i]);
+      const resStartSimilar = await this._client.query(startSimilar, currentQuery);
 
       searchableObjects = resStartSimilar.rows;
-      
+
       const everySimilar = `SELECT * FROM ${this._schema}.${
         this._table
-      } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery(" '%' || ", " || '%'", columns, arrayOfWordsInQuery.length)}) LIMIT ${
-        limit - (searchableObjects == undefined ? 0 : searchableObjects.length)
-      };`;
-      const resEverySimilar = await this._client.query(everySimilar, arrayOfQuery[i]);
+      } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery(
+        " '%' || ",
+        " || '%'",
+        columns,
+        arrayOfWordsInQuery.length,
+      )}) LIMIT ${limit - (searchableObjects === undefined ? 0 : searchableObjects.length)};`;
+      const resEverySimilar = await this._client.query(everySimilar, currentQuery);
       this.addUnique(searchableObjects, resEverySimilar.rows);
     }
 
-    return searchableObjects
+    return searchableObjects;
   }
 }
