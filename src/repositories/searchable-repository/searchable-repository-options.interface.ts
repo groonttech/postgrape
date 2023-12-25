@@ -7,6 +7,11 @@ export interface SearchableRepositoryOptions<TEntity extends Entity> extends Rep
   columnsForSearch: (keyof TEntity)[];
 }
 
-export type SearchOptions<TEntity extends Entity> = SelectQueryOptions<TEntity> &
+export interface SearchColumns<TEntity extends Entity> {
+  columnsForSearch: (keyof TEntity)[];
+}
+
+export type SearchOptions<TEntity extends Entity> = SearchColumns<TEntity> &
+  SelectQueryOptions<TEntity> &
   WhereQueryOptions<TEntity> &
   LimitQueryOptions;

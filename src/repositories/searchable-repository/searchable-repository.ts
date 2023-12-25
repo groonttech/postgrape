@@ -42,14 +42,13 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
 
   public async search(
     query: string,
-    columnsForSearch?: (keyof TEntity)[],
     options?: SearchOptions<TEntity>,
   ): Promise<TEntity[]> {
     if (query === '') throw new InvalidArgumentsException();
-    const columns = (columnsForSearch as string[]) || this._columnsForSearch;
+    const columns = (options.columnsForSearch as string[]) || this._columnsForSearch;
     const limit = !options || !options.limit ? 10 : options.limit;
     const arrayOfWordsInQuery: string[] = query.split(/[\s,]+/); // divide query into words
-    const arrayOfQuery: string[][] = new Array(columnsForSearch.length).fill(arrayOfWordsInQuery);
+    const arrayOfQuery: string[][] = new Array(options.columnsForSearch.length).fill(arrayOfWordsInQuery);
 
     let searchableObjects: TEntity[];
     const optionsQuery = this._whereOptionsToQuery(options?.where);
