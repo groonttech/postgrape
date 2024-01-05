@@ -48,8 +48,8 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
     if (query === '') throw new InvalidArgumentsException();
     const columns = (columnsForSearch as string[]) || this._columnsForSearch;
     const limit = !options || !options.limit ? 10 : options.limit;
-    let arrayOfWordsInQuery: string[] = query.split(/[\s,]+/); // divide query into words
-    let arrayOfQuery: string[][] = [];
+    const arrayOfWordsInQuery: string[] = query.split(/[\s,]+/); // divide query into words
+    const arrayOfQuery: string[][] = [];
 
     for (let j = 0; j < columns.length; j++) {
       arrayOfQuery.push(arrayOfWordsInQuery);
@@ -75,7 +75,7 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
         " || '%'",
         columns,
         arrayOfWordsInQuery.length,
-      )}) LIMIT ${limit - (searchableObjects == undefined ? 0 : searchableObjects.length)};`;
+      )}) LIMIT ${limit - (searchableObjects === undefined ? 0 : searchableObjects.length)};`;
       const resEverySimilar = await this._client.query(everySimilar, arrayOfQuery[i]);
       this.addUnique(searchableObjects, resEverySimilar.rows);
     }

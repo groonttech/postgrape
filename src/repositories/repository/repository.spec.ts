@@ -5,10 +5,12 @@ import { Entity } from '../entity.interface';
 import { Op } from '../operators';
 import { InvalidArgumentsException } from '../../exceptions';
 import { FindOneOptions } from './query-options.interface';
+import { DateTime } from 'luxon';
 
 interface MockEntity extends Entity {
   foo?: string;
   bar?: number;
+  tim?: DateTime;
 }
 
 describe('Repository', () => {
@@ -76,7 +78,7 @@ describe('Repository', () => {
           'SELECT * FROM public."test_table" WHERE (bar IS null) ORDER BY "id" ASC',
         );
       });
-      
+
       test('when there are simple WHERE options', async () => {
         await repository.find({ where: { bar: 6 } });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
@@ -162,6 +164,20 @@ describe('Repository', () => {
       expect(result).toEqual({ id: 1 });
     });
 
+    test('should return undefined when there is no one entity match', async () => {
+      mockQueryMethod = jest.fn((query: string, values: any[]) => Promise.resolve({ rows: [] }));
+      const mockPoolClient = {
+        query: mockQueryMethod,
+      };
+      const mockRepositoryConfig: RepositoryConfig = {
+        client: mockPoolClient as unknown as PoolClient,
+        defaultSchema: 'public',
+      };
+      repository = new Repository('test_table', mockRepositoryConfig);
+      const result = await repository.findOne({});
+      expect(result).toEqual(undefined);
+    });
+
     describe('should generate valid query', () => {
       test('when options is empty', async () => {
         await repository.findOne({});
@@ -196,6 +212,20 @@ describe('Repository', () => {
     test('should return one entity', async () => {
       const result = await repository.findById(1);
       expect(result).toEqual({ id: 1 });
+    });
+
+    test('should return undefined when there is no one entity match', async () => {
+      mockQueryMethod = jest.fn((query: string, values: any[]) => Promise.resolve({ rows: [] }));
+      const mockPoolClient = {
+        query: mockQueryMethod,
+      };
+      const mockRepositoryConfig: RepositoryConfig = {
+        client: mockPoolClient as unknown as PoolClient,
+        defaultSchema: 'public',
+      };
+      repository = new Repository('test_table', mockRepositoryConfig);
+      const result = await repository.findById(1);
+      expect(result).toEqual(undefined);
     });
 
     test('should generate valid query', async () => {
@@ -251,6 +281,14 @@ describe('Repository', () => {
         );
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['test', 4]);
       });
+
+      test('when there is DateTime', async () => {
+        await repository.create({ foo: 'test', tim: DateTime.fromISO('2023-12-26T15:38:46.130+02:00') });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          'INSERT INTO public."test_table" ("foo", "tim") VALUES ($1, $2) RETURNING *',
+        );
+        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['test', `2023-12-26 13:38:46.130 Z`]);
+      });
     });
   });
 
@@ -302,6 +340,20 @@ describe('Repository', () => {
     test('should return one entity', async () => {
       const result = await repository.updateById(1, {});
       expect(result).toEqual({ id: 1 });
+    });
+
+    test('should return undefined when there is no one entity match', async () => {
+      mockQueryMethod = jest.fn((query: string, values: any[]) => Promise.resolve({ rows: [] }));
+      const mockPoolClient = {
+        query: mockQueryMethod,
+      };
+      const mockRepositoryConfig: RepositoryConfig = {
+        client: mockPoolClient as unknown as PoolClient,
+        defaultSchema: 'public',
+      };
+      repository = new Repository('test_table', mockRepositoryConfig);
+      const result = await repository.updateById(1, { bar: 2 });
+      expect(result).toEqual(undefined);
     });
 
     test('should generate valid query', async () => {

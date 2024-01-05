@@ -26,11 +26,11 @@ export function Transaction() {
     descriptor.value = async function () {
       const clientId: number = Reflect.getOwnMetadata(clientSymbol, target, propertyKey);
       if (!clientId)
-        throw Error('Transaction decorator require DataClient decorator on data client argument of method');
+        throw Error('Transaction decorator require @DC() decorator on data client argument of method');
 
       const factory = (this as any)._postgrapeClientFactory as PostgrapeClientFactory | undefined;
       if (!factory)
-        throw Error('Service class using @Transaction() decorator must implements an ITransactable interface');
+        throw Error('Service class using @Transaction() decorator must extends "TransactableService" class');
 
       if (!arguments[clientId]) {
         arguments[clientId] = await factory.acquireClient<PostgrapeClient>();
@@ -39,12 +39,13 @@ export function Transaction() {
 
       const client = arguments[clientId] as PostgrapeClient;
       try {
-        await client.begin();
+        if (factory.useSavepoints) await client.beginOrSave();
+        else await client.begin();
         const out = await method.apply(this, arguments);
         await client.commit();
         return out;
       } catch (error) {
-        await client.rollback();
+        await client.rollbackToLatest();
         throw error;
       } finally {
         client.release();

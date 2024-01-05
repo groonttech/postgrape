@@ -5,3 +5,4 @@ export * from './transaction';
 export * from './transactable-service';
 export * from './postgrape.module';
 export * from './duration-with-tz';
+export * from './postgrape.module-definition';

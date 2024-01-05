@@ -25,19 +25,32 @@ export class PostgrapeClient {
   }
 
   /**
-   * Begin transaction for an acquired client or set a savepoint if transaction already started.
+   * Begin transaction for an acquired client.
    */
   public async begin(): Promise<void> {
-    if (!this._isTransactionStarted) {
-      await this._client.query('BEGIN TRANSACTION', []);
-      // console.log('BEGIN TRANSACTION');
-      this._isTransactionStarted = true;
-    } else {
-      const savepoint = `savepoint_${this._savepoints.length}`;
-      await this._client.query(`SAVEPOINT ${savepoint}`, []);
-      // console.log(`SAVEPOINT ${savepoint}`);
-      this._savepoints.push(savepoint);
-    }
+    if (this._isTransactionStarted) return;
+    await this._client.query('BEGIN', []);
+    // console.log('BEGIN TRANSACTION');
+    this._isTransactionStarted = true;
+  }
+
+  /**
+   * Set a savepoint if transaction already started.
+   */
+  public async save(): Promise<void> {
+    if (!this._isTransactionStarted) return;
+    const savepoint = `savepoint_${this._savepoints.length}`;
+    await this._client.query(`SAVEPOINT ${savepoint}`, []);
+    // console.log(`SAVEPOINT ${savepoint}`);
+    this._savepoints.push(savepoint);
+  }
+
+  /**
+   * Begin transaction for an acquired client or set a savepoint if transaction already started.
+   */
+  public async beginOrSave(): Promise<void> {
+    if (!this._isTransactionStarted) await this.begin();
+    else await this.save();
   }
 
   /**
@@ -45,15 +58,24 @@ export class PostgrapeClient {
    */
   public async commit(): Promise<void> {
     if (this._isTransactionStarted && !this._savepoints.length) {
-      await this._client.query('COMMIT TRANSACTION', []);
+      await this._client.query('COMMIT', []);
       // console.log('COMMIT TRANSACTION');
     }
   }
 
   /**
-   * Rollback transaction or rollback to the latest savepoint for an acquired client.
+   * Rollback full transaction for an acquired client.
    */
   public async rollback(): Promise<void> {
+    if (!this._isTransactionStarted) return;
+    await this._client.query(`ROLLBACK`, []);
+    // console.log('ROLLBACK');
+  }
+
+  /**
+   * Rollback transaction to the latest savepoint if it is exist, otherwise rollback full transaction for an acquired client.
+   */
+  public async rollbackToLatest(): Promise<void> {
     if (!this._isTransactionStarted) return;
     if (this._savepoints.length) {
       const toSavepoint = this._savepoints[this._savepoints.length - 1];

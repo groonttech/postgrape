@@ -31,10 +31,11 @@ types.setTypeParser(types.builtins.TIMETZ, (value: string) => {
  */
 @Injectable()
 export class PostgrapeClientFactory {
-  private _defaultSchema: string;
-  private _pool: Pool;
-  private _dataClientClass: typeof PostgrapeClient;
-  private _logger = new Logger(PostgrapeClientFactory.name);
+  public readonly useSavepoints: boolean;
+  protected _defaultSchema: string;
+  protected _pool: Pool;
+  protected _dataClientClass: typeof PostgrapeClient;
+  protected _logger = new Logger(PostgrapeClientFactory.name);
 
   constructor(@Inject(MODULE_OPTIONS_TOKEN) options: PostgrapeModuleOptions) {
     this._pool = new Pool({
@@ -46,6 +47,9 @@ export class PostgrapeClientFactory {
     });
     this._dataClientClass = options.dataClient;
     this._defaultSchema = options.defaultSchema || 'public';
+    this.useSavepoints = options.useSavepoints === false ? false : true;
+    
+    if (options.connectionCheck === false) return;
 
     // Trying to connect to the database
     this._pool.query('SELECT NOW()', (err, res) => {

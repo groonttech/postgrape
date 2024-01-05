@@ -18,7 +18,10 @@ export class MultipleRepository<TEntity extends Entity> extends Repository<TEnti
     if (!item) throw new InvalidArgumentsException();
 
     const func = `public.insert_multiple_${this._table}`;
-    const values = this._argumentsSequence.reduce((acc, key) => (acc += `${this._valueToQuery(item[key as keyof Omit<TEntity, 'id'>])}, `), '');
+    const values = this._argumentsSequence.reduce(
+      (acc, key) => (acc += `${this._valueToQuery(item[key as keyof Omit<TEntity, 'id'>])}, `),
+      '',
+    );
     const selectOptions = this._parseSelectOptions(options?.select);
     const query = `SELECT ${selectOptions} FROM ${func}(${values}${count})`;
     const res = await this._client.query(query);
