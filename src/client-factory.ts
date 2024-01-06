@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { exit } from 'process';
 import { Pool, types } from 'pg';
 import { PostgrapeModuleOptions, MODULE_OPTIONS_TOKEN } from './postgrape.module-definition';
@@ -30,8 +30,9 @@ types.setTypeParser(types.builtins.TIMETZ, (value: string) => {
  * The `PostgrapeClientFactory` class is responsible for managing database connections and acquiring `PostgrapeClient` instances.
  */
 @Injectable()
-export class PostgrapeClientFactory {
+export class PostgrapeClientFactory implements OnModuleInit {
   public readonly useSavepoints: boolean;
+  protected _connectionCheck: boolean;
   protected _defaultSchema: string;
   protected _pool: Pool;
   protected _dataClientClass: typeof PostgrapeClient;
@@ -48,17 +49,20 @@ export class PostgrapeClientFactory {
     this._dataClientClass = options.dataClient;
     this._defaultSchema = options.defaultSchema || 'public';
     this.useSavepoints = options.useSavepoints === false ? false : true;
-    
-    if (options.connectionCheck === false) return;
+    this._connectionCheck = options.connectionCheck === false ? false : true;
+  }
+
+  async onModuleInit(): Promise<void> {
+    if (!this._connectionCheck) return;
 
     // Trying to connect to the database
-    this._pool.query('SELECT NOW()', (err, res) => {
-      if (err) {
-        this._logger.error(err);
-        exit(1);
-      }
+    try {
+      const res = await this._pool.query('SELECT NOW()');
       this._logger.log('Successfully connected to the database');
-    });
+    } catch (error) {
+      this._logger.error(error);
+      exit(1);
+    }
   }
 
   /**

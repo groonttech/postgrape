@@ -25,7 +25,7 @@ export function Transaction() {
     const method = descriptor.value;
     descriptor.value = async function () {
       const clientId: number = Reflect.getOwnMetadata(clientSymbol, target, propertyKey);
-      if (!clientId)
+      if (clientId === undefined)
         throw Error('Transaction decorator require @DC() decorator on data client argument of method');
 
       const factory = (this as any)._postgrapeClientFactory as PostgrapeClientFactory | undefined;
