@@ -42,29 +42,24 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
 
   public async search(
     query: string,
-    columnsForSearch?: (keyof TEntity)[],
     options?: SearchOptions<TEntity>,
   ): Promise<TEntity[]> {
     if (query === '') throw new InvalidArgumentsException();
-    const columns = (columnsForSearch as string[]) || this._columnsForSearch;
+    const columns = (options?.columnsForSearch as string[]) || this._columnsForSearch;
     const limit = !options || !options.limit ? 10 : options.limit;
     const arrayOfWordsInQuery: string[] = query.split(/[\s,]+/); // divide query into words
-    const arrayOfQuery: string[][] = [];
-
-    for (let j = 0; j < columns.length; j++) {
-      arrayOfQuery.push(arrayOfWordsInQuery);
-    }
+    const arrayOfQuery: string[][] = new Array(options?.columnsForSearch.length).fill(arrayOfWordsInQuery);
 
     let searchableObjects: TEntity[] = [];
     const optionsQuery = this._whereOptionsToQuery(options?.where);
     const isWhere = optionsQuery !== '' ? ' AND' : 'WHERE';
 
-    for (let i = 0; i < arrayOfQuery.length; i++) {
+    for (const currentQuery of arrayOfQuery) {
       const startSimilar = `SELECT * FROM ${this._schema}.${
         this._table
       } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery('', " || '%'", columns, arrayOfWordsInQuery.length)});`;
 
-      const resStartSimilar = await this._client.query(startSimilar, arrayOfQuery[i]);
+      const resStartSimilar = await this._client.query(startSimilar, currentQuery);
 
       searchableObjects = resStartSimilar.rows;
 
@@ -76,7 +71,7 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
         columns,
         arrayOfWordsInQuery.length,
       )}) LIMIT ${limit - (searchableObjects === undefined ? 0 : searchableObjects.length)};`;
-      const resEverySimilar = await this._client.query(everySimilar, arrayOfQuery[i]);
+      const resEverySimilar = await this._client.query(everySimilar, currentQuery);
       this.addUnique(searchableObjects, resEverySimilar.rows);
     }
 
