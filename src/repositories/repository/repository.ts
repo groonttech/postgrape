@@ -15,10 +15,10 @@ import { RepositoryConfig } from './repository-config.interface';
 import { Entity } from '../entity.interface';
 import { Op } from '../operators';
 import { InvalidArgumentsException } from '../../exceptions';
-import { Duration } from 'luxon';
+import { DateTime, Duration } from 'luxon';
 
 /**
- * This class provides a standard set of methods for performing CRUD operations on entities in a data store.
+ * This `Repository` class provides a standard set of methods for performing CRUD operations on entities in a database.
  */
 export class Repository<TEntity extends Entity> {
   protected _table: string;
@@ -54,7 +54,7 @@ export class Repository<TEntity extends Entity> {
    * Find a single entity that matches the given query options and return it.
    * @param options options for building a SQL query
    */
-  public async findOne(options: FindOneOptions<TEntity>): Promise<TEntity> {
+  public async findOne(options: FindOneOptions<TEntity>): Promise<TEntity | undefined> {
     const optionsQuery = this._optionsToQuery({ ...options, limit: 1 });
     const selectOptions = this._parseSelectOptions(options?.select);
     const query = `SELECT ${selectOptions} FROM ${this._schema}."${this._table}" ${optionsQuery}`;
@@ -66,7 +66,7 @@ export class Repository<TEntity extends Entity> {
    * Find an entity by its ID and return it.
    * @param id entity ID
    */
-  public async findById(id: number, options?: FindByIdOptions<TEntity>): Promise<TEntity> {
+  public async findById(id: number, options?: FindByIdOptions<TEntity>): Promise<TEntity | undefined> {
     const where = { id } as WhereOptions<TEntity>;
     const optionsQuery = this._optionsToQuery({ ...options, where, limit: 1 });
     const selectOptions = this._parseSelectOptions(options?.select);
@@ -79,7 +79,7 @@ export class Repository<TEntity extends Entity> {
    * Create a new entity with the given data and return it.
    * @param entity entity object
    */
-  public async create(entity: TEntity, options?: CreateOptions<TEntity>): Promise<TEntity> {
+  public async create(entity: Omit<TEntity, 'id'>, options?: CreateOptions<TEntity>): Promise<TEntity> {
     if (!entity) throw new InvalidArgumentsException();
     const keys = Object.keys(entity)
       .map(key => `"${key}"`)
@@ -117,7 +117,7 @@ export class Repository<TEntity extends Entity> {
    * @param entity update object
    * @deprecated
    */
-  public async updateOne(options: UpdateOptions<TEntity>, entity: Partial<TEntity>): Promise<TEntity> {
+  public async updateOne(options: UpdateOptions<TEntity>, entity: Partial<TEntity>): Promise<TEntity | undefined> {
     const optionsQuery = this._optionsToQuery(options, false, true);
     const keysTemplate = Object.keys(entity)
       .map((key, index) => `"${key}"=$${index + 1}`)
@@ -137,7 +137,7 @@ export class Repository<TEntity extends Entity> {
     id: number,
     entity: Partial<TEntity>,
     options?: UpdateByIdOptions<TEntity>,
-  ): Promise<TEntity> {
+  ): Promise<TEntity | undefined> {
     const keysTemplate = Object.keys(entity)
       .map((key, index) => `"${key}"=$${index + 1}`)
       .join(', ');
@@ -150,12 +150,21 @@ export class Repository<TEntity extends Entity> {
   }
 
   protected _parseValues(values: any[]): any[] {
-    return values.map(value => (value instanceof Duration ? (value as Duration).toFormat('hh:mm:ss') : value));
+    return values.map(value => {
+      if (value instanceof Duration) {
+        return value.toFormat('hh:mm:ss');
+      }
+      if (value instanceof DateTime) {
+        return value.toUTC().toSQL();
+      }
+      return value;
+    });
   }
 
   protected _whereOptionsToQuery(whereOptions?: WhereOptions<TEntity>): string {
     if (!whereOptions) return '';
     const query = this._parseWhereObject(whereOptions);
+    if (query === '') return '';
     return `WHERE ${query}`;
   }
 
@@ -164,10 +173,11 @@ export class Repository<TEntity extends Entity> {
     const query = Object.entries(orderByOptions)
       .map(entry => `"${entry[0]}" ${entry[1]}`)
       .join(', ');
+    if (query === '') return '';
     return `ORDER BY ${query}`;
   }
 
-  protected _optionsToQuery(options: QueryOptions<TEntity>, withOrder = true, withReturning = false): string {
+  protected _optionsToQuery(options?: QueryOptions<TEntity>, withOrder = true, withReturning = false): string {
     const optionsObj = [
       options?.where ? this._whereOptionsToQuery(options?.where) + ' ' : '',
       withOrder ? this._orderByOptionsToQuery(options?.orderBy) + ' ' : '',
@@ -179,44 +189,67 @@ export class Repository<TEntity extends Entity> {
   }
 
   protected _valueToQuery(value: any): string {
-    if (value === undefined || value === null) return 'null';
+    if (value === null) return 'null';
+    if (value === undefined) return '';
 
-    if (value.toISOString) return `'${value.toISOString()}'`;
+    if (value.toSQL) return `'${this.encodeRFC3986URI(value.toSQL())}'`;
 
-    if (typeof value === 'string') return `'${value}'`;
+    if (typeof value === 'string') return `'${this.encodeRFC3986URI(value)}'`;
 
-    return value;
+    return this.encodeRFC3986URI(value);
   }
 
   private _keyValuesArrayToQuery(key: string, array: any[]): string {
-    return `(${array.map(v => `${key} = ${this._valueToQuery(v)}`).join(' OR ')})`;
+    if (array !== undefined) {
+      return `(${array
+        .map(v => {
+          if (this._valueToQuery(v) === 'null') return `${key} IS ${this._valueToQuery(v)}`;
+          if (this._valueToQuery(v) !== '') return `${key} = ${this._valueToQuery(v)}`;
+        })
+        .join(' OR ')})`;
+    }
+
+    return '';
   }
 
   private _keyOperatorValueToQuery(key: string, object: Record<symbol, any>): string {
     const operator = Object.getOwnPropertySymbols(object)[0];
-    return `${key} ${operator.description} ${this._valueToQuery(object[operator])}`;
+
+    if (this._valueToQuery(object[operator]) !== '') {
+      return `${key} ${operator.description} ${this._valueToQuery(object[operator])}`;
+    }
+
+    return '';
   }
 
-  private _keyValueToQuery(key: string, value: any): string {
-    return `${key} = ${this._valueToQuery(value)}`;
+  private _keyValueToQuery(key: string, value: any): string | undefined {
+    if (this._valueToQuery(value) !== '') {
+      if (this._valueToQuery(value) === 'null') return `${key} IS ${this._valueToQuery(value)}`;
+      return `${key} = ${this._valueToQuery(value)}`;
+    }
+
+    return;
   }
 
   private _parseWhereObject(object: Record<string | symbol, any>): string {
-    let query = '';
+    const array: string[] = [];
     const keys = Object.keys(object);
     const operators = Object.getOwnPropertySymbols(object);
 
-    query += keys
-      .map(key => {
-        if (Array.isArray(object[key])) {
-          return this._keyValuesArrayToQuery(key, object[key]);
-        } else if (this._containOperator(object[key])) {
-          return this._keyOperatorValueToQuery(key, object[key]);
-        } else {
-          return this._keyValueToQuery(key, object[key]);
-        }
-      })
-      .join(' AND ');
+    for (const key of keys) {
+      if (Array.isArray(object[key])) {
+        if (this._keyValuesArrayToQuery(key, object[key]) !== undefined)
+          array.push(this._keyValuesArrayToQuery(key, object[key]));
+      } else if (this._containOperator(object[key])) {
+        if (this._keyOperatorValueToQuery(key, object[key]) !== undefined)
+          array.push(this._keyOperatorValueToQuery(key, object[key]));
+      } else {
+        if (this._keyValueToQuery(key, object[key]) !== undefined)
+          array.push(this._keyValueToQuery(key, object[key]) as string);
+      }
+    }
+
+    let query = array.join(' AND ');
 
     if (operators.length && keys.length) query += ' AND ';
 
@@ -237,8 +270,12 @@ export class Repository<TEntity extends Entity> {
     return `(${query})`;
   }
 
-  protected _parseSelectOptions(select: (keyof TEntity)[]): string {
+  protected _parseSelectOptions(select?: (keyof TEntity)[]): string {
     if (!select) return '*';
     return select.join(', ');
+  }
+
+  protected encodeRFC3986URI(str: string) {
+    return encodeURI(str).replace(/['-]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
   }
 }

@@ -32,79 +32,77 @@ describe('SearchableRepository', () => {
   describe('createMultiple() method', () => {
     describe('should generate valid query', () => {
       test('when check with one search column', async () => {
-        await repository.search('foo_name', ['foo']);
-        expect(mockQueryMethod.mock.calls[0][0]).toEqual("SELECT * FROM public.test WHERE foo ILIKE 'foo_name' || '%';");
+        await repository.search('foo_name', {columnsForSearch: ['foo']});
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual("SELECT * FROM public.test WHERE (foo ILIKE $1 || '%');");
         expect(mockQueryMethod.mock.calls[1][0]).toEqual(
-          "SELECT * FROM public.test WHERE foo ILIKE '%' || 'foo_name' || '%' LIMIT 8;",
+          "SELECT * FROM public.test WHERE (foo ILIKE '%' ||  $1 || '%') LIMIT 8;",
         );
-        expect(mockQueryMethod.mock.calls[2][0]).toEqual(
-          "SELECT * FROM public.test  ORDER BY (longest_common_substring(LOWER(public.test.foo::text), LOWER('foo_name'))) > 1 DESC LIMIT 8;",
-        );
-        expect(mockQueryMethod.mock.calls[3][0]).toEqual(
-          "SELECT * FROM public.test  ORDER BY (demerau_levenshtein_distance(LOWER(public.test.foo::text), LOWER('foo_name'))) DESC LIMIT 8;",
-        );
+
+        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
+        expect(mockQueryMethod.mock.calls[1][1]).toEqual(['foo_name']);
       });
 
       test('when check with several search columns', async () => {
-        await repository.search('foo_name', ['foo', 'bar']);
+        await repository.search('foo_name', {columnsForSearch: ['foo', 'bar']});
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-          "SELECT * FROM public.test WHERE foo ILIKE 'foo_name' || '%' AND bar ILIKE 'foo_name' || '%';",
+          "SELECT * FROM public.test WHERE (foo ILIKE $1 || '%') OR (bar ILIKE $1 || '%');",
         );
         expect(mockQueryMethod.mock.calls[1][0]).toEqual(
-          "SELECT * FROM public.test WHERE foo ILIKE '%' || 'foo_name' || '%' AND bar ILIKE '%' || 'foo_name' || '%' LIMIT 8;",
+          "SELECT * FROM public.test WHERE (foo ILIKE '%' ||  $1 || '%') OR (bar ILIKE '%' ||  $1 || '%') LIMIT 8;",
         );
-        expect(mockQueryMethod.mock.calls[2][0]).toEqual(
-          "SELECT * FROM public.test  ORDER BY (longest_common_substring(LOWER(public.test.foo::text), LOWER('foo_name'))) > 1 DESC, (longest_common_substring(LOWER(public.test.bar::text), LOWER('foo_name'))) > 1 DESC LIMIT 8;",
-        );
-        expect(mockQueryMethod.mock.calls[3][0]).toEqual(
-          "SELECT * FROM public.test  ORDER BY (demerau_levenshtein_distance(LOWER(public.test.foo::text), LOWER('foo_name'))) DESC, (demerau_levenshtein_distance(LOWER(public.test.bar::text), LOWER('foo_name'))) DESC LIMIT 8;",
-        );
+
+        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
+        expect(mockQueryMethod.mock.calls[1][1]).toEqual(['foo_name']);
       });
 
       test('when there are SELECT options', async () => {
-        await repository.search('foo_name', ['foo'], { where: { id: 1 } });
+        await repository.search('foo_name', { where: { id: 1 }, columnsForSearch: ['foo'] });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-          "SELECT * FROM public.test WHERE id = 1 AND foo ILIKE 'foo_name' || '%';",
+          "SELECT * FROM public.test WHERE id = 1 AND (foo ILIKE $1 || '%');",
         );
         expect(mockQueryMethod.mock.calls[1][0]).toEqual(
-          "SELECT * FROM public.test WHERE id = 1 AND foo ILIKE '%' || 'foo_name' || '%' LIMIT 8;",
+          "SELECT * FROM public.test WHERE id = 1 AND (foo ILIKE '%' ||  $1 || '%') LIMIT 8;",
         );
-        expect(mockQueryMethod.mock.calls[2][0]).toEqual(
-          "SELECT * FROM public.test WHERE id = 1 ORDER BY (longest_common_substring(LOWER(public.test.foo::text), LOWER('foo_name'))) > 1 DESC LIMIT 8;",
-        );
-        expect(mockQueryMethod.mock.calls[3][0]).toEqual(
-          "SELECT * FROM public.test WHERE id = 1 ORDER BY (demerau_levenshtein_distance(LOWER(public.test.foo::text), LOWER('foo_name'))) DESC LIMIT 8;",
-        );
+
+        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
+        expect(mockQueryMethod.mock.calls[1][1]).toEqual(['foo_name']);
       });
 
       test('when there are LIMIT options', async () => {
-        await repository.search('foo_name', ['foo'], { limit: 8 });
-        expect(mockQueryMethod.mock.calls[0][0]).toEqual("SELECT * FROM public.test WHERE foo ILIKE 'foo_name' || '%';");
+        await repository.search('foo_name', { limit: 8, columnsForSearch: ['foo']  });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual("SELECT * FROM public.test WHERE (foo ILIKE $1 || '%');");
         expect(mockQueryMethod.mock.calls[1][0]).toEqual(
-          "SELECT * FROM public.test WHERE foo ILIKE '%' || 'foo_name' || '%' LIMIT 6;",
+          "SELECT * FROM public.test WHERE (foo ILIKE '%' ||  $1 || '%') LIMIT 6;",
         );
-        expect(mockQueryMethod.mock.calls[2][0]).toEqual(
-          "SELECT * FROM public.test  ORDER BY (longest_common_substring(LOWER(public.test.foo::text), LOWER('foo_name'))) > 1 DESC LIMIT 6;",
+
+        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
+        expect(mockQueryMethod.mock.calls[1][1]).toEqual(['foo_name']);
+      });
+
+      test('when there are search string with several words', async () => {
+        await repository.search('foo name', { limit: 8, columnsForSearch: ['foo'] });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          "SELECT * FROM public.test WHERE (foo ILIKE $1 || '%' AND foo ILIKE $2 || '%');",
         );
-        expect(mockQueryMethod.mock.calls[3][0]).toEqual(
-          "SELECT * FROM public.test  ORDER BY (demerau_levenshtein_distance(LOWER(public.test.foo::text), LOWER('foo_name'))) DESC LIMIT 6;",
+        expect(mockQueryMethod.mock.calls[1][0]).toEqual(
+          "SELECT * FROM public.test WHERE (foo ILIKE '%' ||  $1 || '%' AND foo ILIKE '%' ||  $2 || '%') LIMIT 6;",
         );
+
+        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo', 'name']);
+        expect(mockQueryMethod.mock.calls[1][1]).toEqual(['foo', 'name']);
       });
 
       test('when there are complex options', async () => {
-        await repository.search('foo_name', ['foo'], { where: { id: 1 }, limit: 8 });
+        await repository.search('foo_name', { where: { id: 1 }, limit: 8, columnsForSearch: ['foo'] });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-          "SELECT * FROM public.test WHERE id = 1 AND foo ILIKE 'foo_name' || '%';",
+          "SELECT * FROM public.test WHERE id = 1 AND (foo ILIKE $1 || '%');",
         );
         expect(mockQueryMethod.mock.calls[1][0]).toEqual(
-          "SELECT * FROM public.test WHERE id = 1 AND foo ILIKE '%' || 'foo_name' || '%' LIMIT 6;",
+          "SELECT * FROM public.test WHERE id = 1 AND (foo ILIKE '%' ||  $1 || '%') LIMIT 6;",
         );
-        expect(mockQueryMethod.mock.calls[2][0]).toEqual(
-          "SELECT * FROM public.test WHERE id = 1 ORDER BY (longest_common_substring(LOWER(public.test.foo::text), LOWER('foo_name'))) > 1 DESC LIMIT 6;",
-        );
-        expect(mockQueryMethod.mock.calls[3][0]).toEqual(
-          "SELECT * FROM public.test WHERE id = 1 ORDER BY (demerau_levenshtein_distance(LOWER(public.test.foo::text), LOWER('foo_name'))) DESC LIMIT 6;",
-        );
+
+        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
+        expect(mockQueryMethod.mock.calls[1][1]).toEqual(['foo_name']);
       });
     });
   });
