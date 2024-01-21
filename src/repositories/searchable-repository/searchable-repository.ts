@@ -18,13 +18,16 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
 
     const whereOptions = this._whereOptionsToQuery(options?.where);
     const isWhere = whereOptions !== '' ? ' AND' : 'WHERE';
+    const searchOptions =
+      query &&
+      `${isWhere} ${this._searchedWordsToQueryFindSubstring(
+        columns,
+        queryWords,
+      )} ORDER BY ${this._searchedWordsToQueryFindFromStart(columns, queryWords)}, ${columns.join(
+        ', ',
+      )} LIMIT ${limit}`;
 
-    const queryString = `SELECT * FROM ${this._schema}.${
-      this._table
-    } ${whereOptions}${isWhere} ${this._searchedWordsToQueryFindSubstring(
-      columns,
-      queryWords,
-    )} ORDER BY ${this._searchedWordsToQueryFindFromStart(columns, queryWords)}, ${columns.join(', ')} LIMIT ${limit};`;
+    const queryString = `SELECT * FROM ${this._schema}.${this._table} ${whereOptions}${searchOptions};`;
     const searchQuery = await this._client.query(queryString, queryWords);
 
     searchedObjects = searchQuery.rows;

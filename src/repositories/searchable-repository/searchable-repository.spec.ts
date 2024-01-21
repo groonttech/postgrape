@@ -33,10 +33,7 @@ describe('SearchableRepository', () => {
     describe('should generate valid query', () => {
       test('if query is empty', async () => {
         await repository.search('', { columnsForSearch: ['foo'] });
-        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-          "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%') ORDER BY (foo ILIKE $1 || '%' DESC), foo LIMIT 10;",
-        );
-        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual('SELECT * FROM public.test ;');
       });
 
       test('when check with one search column', async () => {
