@@ -10,71 +10,43 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
     this._columnsForSearch = options.columnsForSearch as string[];
   }
 
-  private addUnique(firstArray: TEntity[], secondArray: TEntity[]): void {
-    for (const secondEntity of secondArray) {
-      let isSimilar = false;
-
-      for (const firstEntity of firstArray) {
-        if (firstEntity.id === secondEntity.id) {
-          isSimilar = true;
-        }
-      }
-
-      if (isSimilar === false) {
-        firstArray.push(secondEntity);
-      }
-    }
-  }
-
-  private _searchOptionsToQuery(
-    prefix: string,
-    sufix: string,
-    columnsForSearch: string[],
-    countSearchWords: number,
-  ): string {
+  private _searchedWordsToQueryFindFromStart(columnsForSearch: string[], queryWords: string[]): string {
     const res = columnsForSearch.map(column => {
-      const words = Array.from({ length: countSearchWords }, (_, j) => `${column} ILIKE${prefix} $${j + 1}${sufix}`);
-      return words.join(' AND ');
+      return queryWords.map((elem, i) => `${column} ILIKE $${i + 1} || '%' DESC`).join('');
     });
 
-    return res.join(') OR (');
+    return '(' + res.join('), (') + ')';
   }
 
-  public async search(
-    query: string,
-    options?: SearchOptions<TEntity>,
-  ): Promise<TEntity[]> {
+  private _searchedWordsToQueryFindSubstring(columnsForSearch: string[], queryWords: string[]): string {
+    const res = columnsForSearch.map(column => {
+      return queryWords.map((elem, i) => `${column} ILIKE '%' || $${i + 1} || '%'`).join(' AND ');
+    });
+
+    return '(' + res.join(') OR (') + ')';
+  }
+
+  public async search(query: string, options?: SearchOptions<TEntity>): Promise<TEntity[]> {
     if (query === '') throw new InvalidArgumentsException();
-    const columns = (options?.columnsForSearch as string[]) || this._columnsForSearch;
-    const limit = !options || !options.limit ? 10 : options.limit;
-    const arrayOfWordsInQuery: string[] = query.split(/[\s,]+/); // divide query into words
-    const arrayOfQuery: string[][] = new Array(options?.columnsForSearch.length).fill(arrayOfWordsInQuery);
 
-    let searchableObjects: TEntity[] = [];
-    const optionsQuery = this._whereOptionsToQuery(options?.where);
-    const isWhere = optionsQuery !== '' ? ' AND' : 'WHERE';
+    let searchedObjects: TEntity[];
+    const columns = (options.columnsForSearch as string[]) || this._columnsForSearch;
+    const limit = options && options.limit && options.limit > 0 ? options.limit : 10;
+    const queryWords: string[] = query.split(/[\s,]+/); // divide query into words
 
-    for (const currentQuery of arrayOfQuery) {
-      const startSimilar = `SELECT * FROM ${this._schema}.${
-        this._table
-      } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery('', " || '%'", columns, arrayOfWordsInQuery.length)});`;
+    const whereOptions = this._whereOptionsToQuery(options?.where);
+    const isWhere = whereOptions !== '' ? ' AND' : 'WHERE';
 
-      const resStartSimilar = await this._client.query(startSimilar, currentQuery);
+    const queryString = `SELECT * FROM ${this._schema}.${
+      this._table
+    } ${whereOptions}${isWhere} ${this._searchedWordsToQueryFindSubstring(
+      columns,
+      queryWords,
+    )} ORDER BY ${this._searchedWordsToQueryFindFromStart(columns, queryWords)}, ${columns.join(', ')} LIMIT ${limit};`;
+    const searchQuery = await this._client.query(queryString, queryWords);
 
-      searchableObjects = resStartSimilar.rows;
+    searchedObjects = searchQuery.rows;
 
-      const everySimilar = `SELECT * FROM ${this._schema}.${
-        this._table
-      } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery(
-        " '%' || ",
-        " || '%'",
-        columns,
-        arrayOfWordsInQuery.length,
-      )}) LIMIT ${limit - (searchableObjects === undefined ? 0 : searchableObjects.length)};`;
-      const resEverySimilar = await this._client.query(everySimilar, currentQuery);
-      this.addUnique(searchableObjects, resEverySimilar.rows);
-    }
-
-    return searchableObjects;
+    return searchedObjects;
   }
 }
