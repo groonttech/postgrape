@@ -29,14 +29,21 @@ describe('SearchableRepository', () => {
     repository = new SearchableRepository(mockRepositoryOptions, mockRepositoryConfig);
   });
 
-  describe('createMultiple() method', () => {
+  describe('search() method', () => {
     describe('should generate valid query', () => {
+      test('if query is empty', async () => {
+        await repository.search('', { columnsForSearch: ['foo'] });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%') ORDER BY (foo ILIKE $1 || '%' DESC), foo LIMIT 10;",
+        );
+        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
+      });
+
       test('when check with one search column', async () => {
         await repository.search('foo_name', { columnsForSearch: ['foo'] });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%') ORDER BY (foo ILIKE $1 || '%' DESC), foo LIMIT 10;",
         );
-
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
       });
 
@@ -45,7 +52,6 @@ describe('SearchableRepository', () => {
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%') OR (bar ILIKE '%' || $1 || '%') ORDER BY (foo ILIKE $1 || '%' DESC), (bar ILIKE $1 || '%' DESC), foo, bar LIMIT 10;",
         );
-
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
       });
 
@@ -54,7 +60,6 @@ describe('SearchableRepository', () => {
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           "SELECT * FROM public.test WHERE id = 1 AND (foo ILIKE '%' || $1 || '%') ORDER BY (foo ILIKE $1 || '%' DESC), foo LIMIT 10;",
         );
-
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
       });
 
@@ -63,7 +68,6 @@ describe('SearchableRepository', () => {
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%') ORDER BY (foo ILIKE $1 || '%' DESC), foo LIMIT 8;",
         );
-
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
       });
 
@@ -72,7 +76,6 @@ describe('SearchableRepository', () => {
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%' AND foo ILIKE '%' || $2 || '%') ORDER BY (foo ILIKE $1 || '%' DESCfoo ILIKE $2 || '%' DESC), foo LIMIT 8;",
         );
-
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo', 'name']);
       });
 
@@ -81,7 +84,6 @@ describe('SearchableRepository', () => {
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           "SELECT * FROM public.test WHERE id = 1 AND (foo ILIKE '%' || $1 || '%') ORDER BY (foo ILIKE $1 || '%' DESC), foo LIMIT 8;",
         );
-
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
       });
     });
