@@ -39,7 +39,7 @@ describe('SearchableRepository', () => {
       test('when check with one search column', async () => {
         await repository.search('foo_name', { columnsForSearch: ['foo'] });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-          "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%') ORDER BY (foo ILIKE $1 || '%' DESC), foo LIMIT 10;",
+          "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%') ORDER BY \"id\" ASC, foo ILIKE $1 || '%' DESC LIMIT 10;",
         );
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
       });
@@ -47,7 +47,7 @@ describe('SearchableRepository', () => {
       test('when check with several search columns', async () => {
         await repository.search('foo_name', { columnsForSearch: ['foo', 'bar'] });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-          "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%') OR (bar ILIKE '%' || $1 || '%') ORDER BY (foo ILIKE $1 || '%' DESC), (bar ILIKE $1 || '%' DESC), foo, bar LIMIT 10;",
+          "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%' OR bar ILIKE '%' || $1 || '%') ORDER BY \"id\" ASC, foo ILIKE $1 || '%' DESC, bar ILIKE $1 || '%' DESC LIMIT 10;",
         );
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
       });
@@ -55,7 +55,15 @@ describe('SearchableRepository', () => {
       test('when there are SELECT options', async () => {
         await repository.search('foo_name', { where: { id: 1 }, columnsForSearch: ['foo'] });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-          "SELECT * FROM public.test WHERE id = 1 AND (foo ILIKE '%' || $1 || '%') ORDER BY (foo ILIKE $1 || '%' DESC), foo LIMIT 10;",
+          "SELECT * FROM public.test WHERE id = 1 AND (foo ILIKE '%' || $1 || '%') ORDER BY \"id\" ASC, foo ILIKE $1 || '%' DESC LIMIT 10;",
+        );
+        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
+      });
+
+      test('when there are ORDER BY options', async () => {
+        await repository.search('foo_name', { orderBy: { foo: 'DESC' }, columnsForSearch: ['foo'] });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%') ORDER BY \"foo\" DESC, foo ILIKE $1 || '%' DESC LIMIT 10;",
         );
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
       });
@@ -63,7 +71,15 @@ describe('SearchableRepository', () => {
       test('when there are LIMIT options', async () => {
         await repository.search('foo_name', { limit: 8, columnsForSearch: ['foo'] });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-          "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%') ORDER BY (foo ILIKE $1 || '%' DESC), foo LIMIT 8;",
+          "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%') ORDER BY \"id\" ASC, foo ILIKE $1 || '%' DESC LIMIT 8;",
+        );
+        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
+      });
+
+      test('when there are OFFSET options', async () => {
+        await repository.search('foo_name', { offset: 8, columnsForSearch: ['foo'] });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%') ORDER BY \"id\" ASC, foo ILIKE $1 || '%' DESC OFFSET 8 LIMIT 10;",
         );
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
       });
@@ -71,7 +87,7 @@ describe('SearchableRepository', () => {
       test('when there are search string with several words', async () => {
         await repository.search('foo name', { limit: 8, columnsForSearch: ['foo'] });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-          "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%' AND foo ILIKE '%' || $2 || '%') ORDER BY (foo ILIKE $1 || '%' DESCfoo ILIKE $2 || '%' DESC), foo LIMIT 8;",
+          "SELECT * FROM public.test WHERE (foo ILIKE '%' || $1 || '%' OR foo ILIKE '%' || $2 || '%') ORDER BY \"id\" ASC, foo ILIKE $1 || '%' DESC, foo ILIKE $2 || '%' DESC LIMIT 8;",
         );
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo', 'name']);
       });
@@ -79,7 +95,7 @@ describe('SearchableRepository', () => {
       test('when there are complex options', async () => {
         await repository.search('foo_name', { where: { id: 1 }, limit: 8, columnsForSearch: ['foo'] });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-          "SELECT * FROM public.test WHERE id = 1 AND (foo ILIKE '%' || $1 || '%') ORDER BY (foo ILIKE $1 || '%' DESC), foo LIMIT 8;",
+          "SELECT * FROM public.test WHERE id = 1 AND (foo ILIKE '%' || $1 || '%') ORDER BY \"id\" ASC, foo ILIKE $1 || '%' DESC LIMIT 8;",
         );
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['foo_name']);
       });

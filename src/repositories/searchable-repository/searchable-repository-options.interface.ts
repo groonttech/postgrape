@@ -1,4 +1,4 @@
-import { Entity, LimitQueryOptions, RepositoryOptions, SelectQueryOptions, WhereQueryOptions } from '../repository';
+import { Entity, LimitQueryOptions, OffsetQueryOptions, OrderByQueryOptions, RepositoryOptions, SelectQueryOptions, WhereQueryOptions } from '../repository';
 
 /**
  * This interface provides a standard way of defining and representing multiple repositories in the Postgrape library.
@@ -14,4 +14,6 @@ export interface SearchColumns<TEntity extends Entity> {
 export type SearchOptions<TEntity extends Entity> = SearchColumns<TEntity> &
   SelectQueryOptions<TEntity> &
   WhereQueryOptions<TEntity> &
+  OrderByQueryOptions<TEntity> &
+  OffsetQueryOptions &
   LimitQueryOptions;
