@@ -33,7 +33,7 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
       )}${offset} LIMIT ${limit}`;
 
     const queryString = `SELECT * FROM ${this._schema}.${this._table} ${whereOptions}${searchOptions};`;
-    const searchQuery = await this._client.query(queryString, queryWords);
+    const searchQuery = await this._client.query(queryString, query ? queryWords : []);
 
     searchedObjects = searchQuery.rows;
 
