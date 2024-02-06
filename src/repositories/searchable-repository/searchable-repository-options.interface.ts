@@ -8,7 +8,7 @@ export interface SearchableRepositoryOptions<TEntity extends Entity> extends Rep
 }
 
 export interface SearchColumns<TEntity extends Entity> {
-  columnsForSearch: (keyof TEntity)[];
+  columnsForSearch?: (keyof TEntity)[];
 }
 
 export type SearchOptions<TEntity extends Entity> = SearchColumns<TEntity> &

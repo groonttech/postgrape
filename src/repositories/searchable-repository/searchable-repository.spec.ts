@@ -33,7 +33,7 @@ describe('SearchableRepository', () => {
     describe('should generate valid query', () => {
       test('if query is empty', async () => {
         await repository.search('', { columnsForSearch: ['foo'] });
-        expect(mockQueryMethod.mock.calls[0][0]).toEqual('SELECT * FROM public.test ;');
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual('SELECT * FROM public.test  ORDER BY \"id\" ASC LIMIT 10;');
       });
 
       test('when check with one search column', async () => {
