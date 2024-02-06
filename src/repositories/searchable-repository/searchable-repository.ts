@@ -2,18 +2,18 @@ import { Entity, Repository, RepositoryConfig } from '../repository';
 import { SearchOptions, SearchableRepositoryOptions } from './searchable-repository-options.interface';
 
 export class SearchableRepository<TEntity extends Entity> extends Repository<TEntity> {
-  private readonly _defaultLimit = 10;
-  private _columnsForSearch: string[] = [];
+  private readonly defaultLimit = 10;
+  private columnsForSearch: string[] = [];
 
   constructor(options: SearchableRepositoryOptions<TEntity>, config: RepositoryConfig) {
     super(options, config);
-    this._columnsForSearch = options.columnsForSearch as string[];
+    this.columnsForSearch = options.columnsForSearch as string[];
   }
 
   public async search(query: string, options?: SearchOptions<TEntity>): Promise<TEntity[]> {
     let searchedObjects: TEntity[];
-    const columns = (options?.columnsForSearch as string[]) || this._columnsForSearch;
-    const limit = options && options.limit && options.limit > 0 ? options.limit : this._defaultLimit;
+    const columns = (options?.columnsForSearch as string[]) || this.columnsForSearch;
+    const limit = options && options.limit && options.limit > 0 ? options.limit : this.defaultLimit;
     const offset = options && options.offset && options.offset > 0 ? ' OFFSET ' + options.offset : '';
     const queryWords: string[] = query.split(/[\s,]+/);
 
