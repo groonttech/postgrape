@@ -1,8 +1,8 @@
 import { Entity, Repository, RepositoryConfig } from '../repository';
 import { SearchOptions, SearchableRepositoryOptions } from './searchable-repository-options.interface';
-import { InvalidArgumentsException } from '../../exceptions';
 
 export class SearchableRepository<TEntity extends Entity> extends Repository<TEntity> {
+  private readonly _defaultLimit = 10;
   private _columnsForSearch: string[] = [];
 
   constructor(options: SearchableRepositoryOptions<TEntity>, config: RepositoryConfig) {
@@ -10,71 +10,49 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
     this._columnsForSearch = options.columnsForSearch as string[];
   }
 
-  private addUnique(firstArray: TEntity[], secondArray: TEntity[]): void {
-    for (const secondEntity of secondArray) {
-      let isSimilar = false;
+  public async search(query: string, options?: SearchOptions<TEntity>): Promise<TEntity[]> {
+    let searchedObjects: TEntity[];
+    const columns = (options?.columnsForSearch as string[]) || this._columnsForSearch;
+    const limit = options && options.limit && options.limit > 0 ? options.limit : this._defaultLimit;
+    const offset = options && options.offset && options.offset > 0 ? ' OFFSET ' + options.offset : '';
+    const queryWords: string[] = query.split(/[\s,]+/);
 
-      for (const firstEntity of firstArray) {
-        if (firstEntity.id === secondEntity.id) {
-          isSimilar = true;
-        }
-      }
+    const whereOptions = this._whereOptionsToQuery(options?.where);
+    const orderByOptions = this._orderByOptionsToQuery(options?.orderBy);
+    const isWhere = whereOptions !== '' ? ' AND' : 'WHERE';
+    const isOrderBy = orderByOptions !== '' ? ', ' : 'ORDER BY';
 
-      if (isSimilar === false) {
-        firstArray.push(secondEntity);
-      }
-    }
+    const searchOptions =
+      query &&
+      `${isWhere} ${this._searchedWordsToQueryFindSubstring(
+        columns,
+        queryWords,
+      )} ${orderByOptions}${isOrderBy}${this._searchedWordsToQueryFindFromStart(
+        columns,
+        queryWords,
+      )}${offset} LIMIT ${limit}`;
+
+    const queryString = `SELECT * FROM ${this._schema}.${this._table} ${whereOptions}${searchOptions};`;
+    const searchQuery = await this._client.query(queryString, queryWords);
+
+    searchedObjects = searchQuery.rows;
+
+    return searchedObjects;
   }
 
-  private _searchOptionsToQuery(
-    prefix: string,
-    sufix: string,
-    columnsForSearch: string[],
-    countSearchWords: number,
-  ): string {
+  private _searchedWordsToQueryFindFromStart(columnsForSearch: string[], queryWords: string[]): string {
     const res = columnsForSearch.map(column => {
-      const words = Array.from({ length: countSearchWords }, (_, j) => `${column} ILIKE${prefix} $${j + 1}${sufix}`);
-      return words.join(' AND ');
+      return queryWords.map((elem, i) => `${column} ILIKE $${i + 1} || '%' DESC`).join(', ');
     });
 
-    return res.join(') OR (');
+    return res.join(', ');
   }
 
-  public async search(
-    query: string,
-    options?: SearchOptions<TEntity>,
-  ): Promise<TEntity[]> {
-    if (query === '') throw new InvalidArgumentsException();
-    const columns = (options?.columnsForSearch as string[]) || this._columnsForSearch;
-    const limit = !options || !options.limit ? 10 : options.limit;
-    const arrayOfWordsInQuery: string[] = query.split(/[\s,]+/); // divide query into words
-    const arrayOfQuery: string[][] = new Array(options?.columnsForSearch.length).fill(arrayOfWordsInQuery);
+  private _searchedWordsToQueryFindSubstring(columnsForSearch: string[], queryWords: string[]): string {
+    const res = columnsForSearch.map(column => {
+      return queryWords.map((elem, i) => `${column} ILIKE '%' || $${i + 1} || '%'`).join(' OR ');
+    });
 
-    let searchableObjects: TEntity[] = [];
-    const optionsQuery = this._whereOptionsToQuery(options?.where);
-    const isWhere = optionsQuery !== '' ? ' AND' : 'WHERE';
-
-    for (const currentQuery of arrayOfQuery) {
-      const startSimilar = `SELECT * FROM ${this._schema}.${
-        this._table
-      } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery('', " || '%'", columns, arrayOfWordsInQuery.length)});`;
-
-      const resStartSimilar = await this._client.query(startSimilar, currentQuery);
-
-      searchableObjects = resStartSimilar.rows;
-
-      const everySimilar = `SELECT * FROM ${this._schema}.${
-        this._table
-      } ${optionsQuery}${isWhere} (${this._searchOptionsToQuery(
-        " '%' || ",
-        " || '%'",
-        columns,
-        arrayOfWordsInQuery.length,
-      )}) LIMIT ${limit - (searchableObjects === undefined ? 0 : searchableObjects.length)};`;
-      const resEverySimilar = await this._client.query(everySimilar, currentQuery);
-      this.addUnique(searchableObjects, resEverySimilar.rows);
-    }
-
-    return searchableObjects;
+    return '(' + res.join(' OR ') + ')';
   }
 }
