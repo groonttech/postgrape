@@ -82,7 +82,7 @@ export class Repository<TEntity extends Entity> {
   public async create(entity: Omit<TEntity, 'id'>, options?: CreateOptions<TEntity>): Promise<TEntity> {
     if (!entity) throw new InvalidArgumentsException();
     const keys = Object.keys(entity)
-      .map(key => `"${key}"`)
+      .map(key => `"${this.encodeRFC3986URI(key)}"`)
       .join(', ');
     const values = Object.values(entity);
     const valuesTemplate = Object.values(entity)
@@ -157,6 +157,7 @@ export class Repository<TEntity extends Entity> {
       if (value instanceof DateTime) {
         return value.toUTC().toSQL();
       }
+      if (typeof value === 'string') return `${this.encodeRFC3986URI(value)}`;
       return value;
     });
   }
