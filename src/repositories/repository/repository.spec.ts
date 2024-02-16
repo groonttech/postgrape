@@ -58,6 +58,13 @@ describe('Repository', () => {
         );
       });
 
+      test('when there is escape string', async () => {
+        await repository.find({ where: { bar: undefined, foo: 'foo-name\'' } });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          'SELECT * FROM public."test_table" WHERE (foo = \'foo%2Dname%27\') ORDER BY "id" ASC',
+        );
+      });
+
       test('when there is one defined and one undefined param in WHERE options', async () => {
         await repository.find({ where: { foo: 'foo_name', bar: undefined } });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
@@ -184,6 +191,13 @@ describe('Repository', () => {
         expect(mockQueryMethod.mock.calls[0][0]).toEqual('SELECT * FROM public."test_table" ORDER BY "id" ASC LIMIT 1');
       });
 
+      test('when there is escape string', async () => {
+        await repository.findOne({ where: { bar: undefined, foo: 'foo-name\'' }});
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          'SELECT * FROM public."test_table" WHERE (foo = \'foo%2Dname%27\') ORDER BY "id" ASC LIMIT 1',
+        );
+      });
+
       test('when there are several options', async () => {
         await repository.findOne({
           select: ['bar'],
@@ -274,6 +288,15 @@ describe('Repository', () => {
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['test', 4]);
       });
 
+      test('when there is escape string', async () => {
+        await repository.create({ foo: 'test-\'', bar: 4 });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          'INSERT INTO public."test_table" ("foo", "bar") VALUES ($1, $2) RETURNING *',
+        );
+
+        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['test%2D%27', 4]);
+      });
+
       test('when there are RETURNING options', async () => {
         await repository.create({ foo: 'test', bar: 4 }, { returning: ['id'] });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
@@ -313,6 +336,15 @@ describe('Repository', () => {
           'UPDATE public."test_table" SET "foo"=$1 WHERE bar = 4 RETURNING *',
         );
         expect(mockQueryMethod.mock.calls[0][1]).toEqual(['test']);
+      });
+
+      test('when there is escape string', async () => {
+        await repository.update({ where: { bar: 4 } }, { foo: 'test-\'' });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          'UPDATE public."test_table" SET "foo"=$1 WHERE bar = 4 RETURNING *',
+        );
+
+        expect(mockQueryMethod.mock.calls[0][1]).toEqual(['test%2D%27']);
       });
 
       test('when there are several fields', async () => {
@@ -361,6 +393,15 @@ describe('Repository', () => {
       expect(mockQueryMethod.mock.calls[0][0]).toEqual(
         'UPDATE public."test_table" SET "foo"=$1 WHERE id = 1 RETURNING *',
       );
+    });
+
+    test('when there is escape string', async () => {
+      await repository.updateById(1, { foo: 'test-\'' });
+      expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+        'UPDATE public."test_table" SET "foo"=$1 WHERE id = 1 RETURNING *',
+      );
+
+      expect(mockQueryMethod.mock.calls[0][1]).toEqual(['test%2D%27']);
     });
 
     test('should generate valid query with RETURNING options', async () => {
