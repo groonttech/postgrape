@@ -18,9 +18,9 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
     const queryWords: string[] = query.split(/[\s,]+/);
 
     const whereOptions = this._whereOptionsToQuery(options?.where);
-    const orderByOptions = this._orderByOptionsToQuery(options?.orderBy);
+    const orderByOptions = options?.orderBy !== undefined ? this._orderByOptionsToQuery(options?.orderBy) : '';
     const isWhere = whereOptions !== '' ? ' AND' : 'WHERE';
-    const isOrderBy = orderByOptions !== '' ? ', ' : 'ORDER BY';
+    const isOrderBy = orderByOptions !== '' ? ', ' : 'ORDER BY ';
 
     const whereSearchOptions = query && `${isWhere} ${this._searchedWordsToQueryFindSubstring(columns,queryWords)}`;
     const orderBySearchOptions = query && `${isOrderBy}${this._searchedWordsToQueryFindFromStart(columns, queryWords)}`;
