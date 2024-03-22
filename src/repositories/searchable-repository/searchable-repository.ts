@@ -24,7 +24,6 @@ export class SearchableRepository<TEntity extends Entity> extends Repository<TEn
 
     const whereSearchOptions = query && `${isWhere} ${this._searchedWordsToQueryFindSubstring(columns,queryWords)}`;
     const orderBySearchOptions = query && `${isOrderBy}${this._searchedWordsToQueryFindFromStart(columns, queryWords)}`;
-
     const queryString = `SELECT * FROM ${this._schema}.${this._table} ${whereOptions}${whereSearchOptions} ${orderByOptions}${orderBySearchOptions}${offset} LIMIT ${limit};`;
     const searchQuery = await this._client.query(queryString, query ? queryWords : []);
 

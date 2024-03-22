@@ -59,7 +59,7 @@ describe('Repository', () => {
       });
 
       test('when there is escape string', async () => {
-        await repository.find({ where: { bar: undefined, foo: 'foo-name\'' } });
+        await repository.find({ where: { bar: undefined, foo: "foo-name'" } });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           'SELECT * FROM public."test_table" WHERE (foo = \'foo%2Dname%27\') ORDER BY "id" ASC',
         );
@@ -192,7 +192,7 @@ describe('Repository', () => {
       });
 
       test('when there is escape string', async () => {
-        await repository.findOne({ where: { bar: undefined, foo: 'foo-name\'' }});
+        await repository.findOne({ where: { bar: undefined, foo: "foo-name'" } });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           'SELECT * FROM public."test_table" WHERE (foo = \'foo%2Dname%27\') ORDER BY "id" ASC LIMIT 1',
         );
@@ -289,7 +289,7 @@ describe('Repository', () => {
       });
 
       test('when there is escape string', async () => {
-        await repository.create({ foo: 'test-\'', bar: 4 });
+        await repository.create({ foo: "test-'", bar: 4 });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           'INSERT INTO public."test_table" ("foo", "bar") VALUES ($1, $2) RETURNING *',
         );
@@ -339,7 +339,7 @@ describe('Repository', () => {
       });
 
       test('when there is escape string', async () => {
-        await repository.update({ where: { bar: 4 } }, { foo: 'test-\'' });
+        await repository.update({ where: { bar: 4 } }, { foo: "test-'" });
         expect(mockQueryMethod.mock.calls[0][0]).toEqual(
           'UPDATE public."test_table" SET "foo"=$1 WHERE bar = 4 RETURNING *',
         );
@@ -396,7 +396,7 @@ describe('Repository', () => {
     });
 
     test('when there is escape string', async () => {
-      await repository.updateById(1, { foo: 'test-\'' });
+      await repository.updateById(1, { foo: "test-'" });
       expect(mockQueryMethod.mock.calls[0][0]).toEqual(
         'UPDATE public."test_table" SET "foo"=$1 WHERE id = 1 RETURNING *',
       );

@@ -37,8 +37,16 @@ describe('SearchableRepository', () => {
       });
 
       test('if empty query and not empty options', async () => {
-        await repository.search('', { columnsForSearch: ['foo'], where: { foo: '123'}, orderBy: { foo: 'ASC' }, offset: 2, limit: 32 });
-        expect(mockQueryMethod.mock.calls[0][0]).toEqual('SELECT * FROM public.test WHERE foo = \'123\' ORDER BY \"foo\" ASC OFFSET 2 LIMIT 32;');
+        await repository.search('', {
+          columnsForSearch: ['foo'],
+          where: { foo: '123' },
+          orderBy: { foo: 'ASC' },
+          offset: 2,
+          limit: 32,
+        });
+        expect(mockQueryMethod.mock.calls[0][0]).toEqual(
+          'SELECT * FROM public.test WHERE foo = \'123\' ORDER BY "foo" ASC OFFSET 2 LIMIT 32;',
+        );
       });
 
       test('when check with one search column', async () => {
