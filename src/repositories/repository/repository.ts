@@ -278,6 +278,6 @@ export class Repository<TEntity extends Entity> {
 
   // ! Temporary deactivated
   protected encodeRFC3986URI(str: string) {
-    return str; //encodeURI(str).replace(/['-]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+    return str; // encodeURI(str).replace(/['-]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
   }
 }
