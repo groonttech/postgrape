@@ -1,5 +1,6 @@
 import { PoolClient } from 'pg';
 import {
+  CountOptions,
   CreateOptions,
   FindByIdOptions,
   FindOneOptions,
@@ -74,6 +75,17 @@ export class Repository<TEntity extends Entity> {
     const res = await this._client.query(query, []);
     return res.rows[0];
   }
+
+    /**
+ * Count the total number of entities that match the given query options.
+ * @param options Options for building a SQL query
+ */
+    public async count(options?: CountOptions<TEntity>): Promise<number> {
+      const optionsQuery = this._optionsToQuery(options, false);
+      const query = `SELECT COUNT(*) as total FROM ${this._schema}."${this._table}" ${optionsQuery}`;
+      const res = await this._client.query(query, []);
+      return parseInt(res.rows[0].total, 10);
+    }
 
   /**
    * Create a new entity with the given data and return it.
