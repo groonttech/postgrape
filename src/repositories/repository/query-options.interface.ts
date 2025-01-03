@@ -124,6 +124,8 @@ export type FindOneOptions<TEntity extends Entity> = SelectQueryOptions<TEntity>
  */
 export type FindByIdOptions<TEntity extends Entity> = SelectQueryOptions<TEntity>;
 
+export type CountOptions<TEntity extends Entity> = WhereQueryOptions<TEntity>;
+
 /**
  * This interface defines options for building a SQL query for `create()` method.
  *
