@@ -260,13 +260,11 @@ describe('Repository', () => {
   describe('count() method', () => {
     test('should generate valid query without where params', async () => {
       await repository.count();
-      expect(mockQueryMethod.mock.calls[0][0]).toEqual(
-        'SELECT COUNT(*) as total FROM public."test_table" ',
-      );
+      expect(mockQueryMethod.mock.calls[0][0]).toEqual('SELECT COUNT(*) as total FROM public."test_table" ');
     });
 
     test('should generate valid query with where params', async () => {
-      await repository.count({where: { bar: 6 }});
+      await repository.count({ where: { bar: 6 } });
       expect(mockQueryMethod.mock.calls[0][0]).toEqual(
         'SELECT COUNT(*) as total FROM public."test_table" WHERE bar = 6',
       );
